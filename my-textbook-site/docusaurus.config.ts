@@ -15,14 +15,14 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://physical-ai-humanoid-robotics-textbook-j8dec6teg.vercel.app/',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/', // Update baseUrl for GitHub Pages deployment
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'your-github-username-or-org', // e.g. 'facebook'
+  organizationName: 'your-github-alinayasmeen-or-org', // e.g. 'facebook'
   projectName: 'Physical-AI-Humanoid-Robotics-Textbook', // e.g. 'docusaurus'
 
   onBrokenLinks: 'throw',
@@ -47,7 +47,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/your-github-username-or-org/Physical-AI-Humanoid-Robotics-Textbook/tree/main/my-textbook-site/',
+            'https://github.com/alinayasmeen/Physical-AI-Humanoid-Robotics-Textbook/tree/bf98087522afeec72226e191424628be1dd4d061/my-textbook-site/',
         },
         blog: false, // Disable default blog if not needed
         theme: {
@@ -88,7 +88,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img\robot.jpg',
     colorMode: {
       respectPrefersColorScheme: true,
     },
@@ -96,7 +96,7 @@ const config: Config = {
       title: 'Robotics Textbook',
       logo: {
         alt: 'Textbook Logo',
-        src: 'img/logo.svg', // Light mode logo
+        src: 'img/download.png', // Light mode logo
         srcDark: 'img/logo-dark.svg', // Optional: dark mode logo
       },
       items: [
@@ -132,7 +132,7 @@ const config: Config = {
         },
         {to: '/course-overview', label: 'Overview', position: 'right'},
         {
-          href: 'https://github.com/your-github-username-or-org/Physical-AI-Humanoid-Robotics-Textbook', // Link to your GitHub repo
+          href: 'https://github.com/alinayasmeen/Physical-AI-Humanoid-Robotics-Textbook.git', // Link to your GitHub repo
           label: 'GitHub',
           position: 'right',
         },
@@ -142,20 +142,13 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Community',
-          items: [
-            { label: 'Discord', href: 'https://discordapp.com/invite/docusaurus' },
-            { label: 'X', href: 'https://x.com/docusaurus' },
-          ],
-        },
-        {
           title: 'More',
           items: [
-            { label: 'GitHub', href: 'https://github.com/facebook/docusaurus' },
+            { label: 'GitHub', href: 'https://github.com/alinayasmeen/Physical-AI-Humanoid-Robotics-Textbook.git' },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Physical AI Book by Hafiza Alina Yasmeen, Inc. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
