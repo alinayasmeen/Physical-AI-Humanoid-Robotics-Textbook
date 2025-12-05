@@ -1,0 +1,148 @@
+openapi: 3.0.0
+info:
+  title: Robotics Skill Agent API
+  version: 1.0.0
+  description: API for the Robotics Skill Agent to answer ROS/Gazebo/Isaac queries.
+
+servers:
+  - url: /api/robotics-agent
+    description: Relative path for the robotics skill agent API
+
+paths:
+  /query:
+    post:
+      summary: Submit a robotics-related query to the Skill Agent
+      operationId: submitRoboticsQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoboticsQuery'
+      responses:
+        '200':
+          description: Successful response from the Skill Agent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillAgentResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    RoboticsQuery:
+      type: object
+      required:
+        - id
+        - text
+        - timestamp
+        - session_id
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the query session/message
+        text:
+          type: string
+          description: The raw text of the user's question
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the query was received
+        session_id:
+          type: string
+          description: Identifier for the user's chat session
+        context_page_url:
+          type: string
+          format: uri
+          description: URL of the Docusaurus page from which the query was made
+          nullable: true
+        robotics_framework_hint:
+          type: string
+          description: Optional hint for the robotics framework (e.g., ROS 2, Gazebo, Isaac Sim)
+          nullable: true
+        version_hint:
+          type: string
+          description: Optional version hint (e.g., Humble, Ignition Fortress)
+          nullable: true
+
+    SkillAgentResponse:
+      type: object
+      required:
+        - id
+        - query_id
+        - answer_text
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the response message
+        query_id:
+          type: string
+          description: References the RoboticsQuery.id
+        answer_text:
+          type: string
+          description: The generated natural language answer, including code snippets, formatted markdown
+        retrieved_snippets_ids:
+          type: array
+          items:
+            type: string
+          description: References KnowledgeSnippet.id's used as context
+          nullable: true
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+          description: Optional details if the agent invoked any external tools
+          nullable: true
+        confidence_score:
+          type: number
+          format: float
+          description: Optional score indicating confidence in the answer
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the response was generated
+        suggested_next_steps:
+          type: array
+          items:
+            type: string
+          description: Suggested next steps for the user
+          nullable: true
+
+    ToolCall:
+      type: object
+      required:
+        - tool_name
+        - arguments
+      properties:
+        tool_name:
+          type: string
+          description: Name of the tool invoked (e.g., ROS2_CLI_Executor)
+        arguments:
+          type: object
+          description: Parameters for the tool
+        expected_output_format:
+          type: string
+          description: Expected format of the tool's output (e.g., text, JSON)
+          nullable: true
+        execution_status:
+          type: string
+          enum:
+            - PENDING
+            - SUCCESS
+            - FAILED
+          description: Status of the tool's execution
+          nullable: true
+        output:
+          type: string
+          description: The result of the tool's execution
+          nullable: true

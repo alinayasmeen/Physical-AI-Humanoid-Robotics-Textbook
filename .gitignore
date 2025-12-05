@@ -1,0 +1,50 @@
+# Gitignore for Physical AI & Humanoid Robotics Textbook Project
+
+# Node.js/JavaScript/TypeScript
+node_modules/
+dist/
+build/
+*.log
+.env*
+coverage/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.vscode/
+.idea/
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Docusaurus specific (will be in the docusaurus project root)
+# build/
+# .docusaurus/
+# .cache/
+
+# IDE files
+.vscode/
+.idea/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local

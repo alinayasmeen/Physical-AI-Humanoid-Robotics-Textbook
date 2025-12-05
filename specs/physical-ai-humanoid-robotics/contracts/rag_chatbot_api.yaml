@@ -1,0 +1,117 @@
+openapi: 3.0.0
+info:
+  title: RAG Chatbot API
+  version: 1.0.0
+  description: API for the RAG-powered chatbot to answer questions based on textbook content.
+
+servers:
+  - url: /api/chatbot
+    description: Relative path for the chatbot API
+
+paths:
+  /query:
+    post:
+      summary: Submit a user query to the RAG chatbot
+      operationId: submitQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserQuery'
+      responses:
+        '200':
+          description: Successful response from the chatbot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    UserQuery:
+      type: object
+      required:
+        - id
+        - text
+        - timestamp
+        - session_id
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the query session/message
+        text:
+          type: string
+          description: The raw text of the user's question
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the query was received
+        session_id:
+          type: string
+          description: Identifier for the user's chat session
+        context_page_url:
+          type: string
+          format: uri
+          description: URL of the Docusaurus page from which the query was made
+          nullable: true
+
+    ChatResponse:
+      type: object
+      required:
+        - id
+        - query_id
+        - answer_text
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the response message
+        query_id:
+          type: string
+          description: References the UserQuery.id
+        answer_text:
+          type: string
+          description: The generated natural language answer
+        retrieved_chunks_ids:
+          type: array
+          items:
+            type: string
+          description: References TextChunk.id's that were used as context
+          nullable: true
+        confidence_score:
+          type: number
+          format: float
+          description: Optional score indicating confidence in the answer
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the response was generated
+        source_links:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceLink'
+          description: Links to relevant Docusaurus pages or sections
+          nullable: true
+
+    SourceLink:
+      type: object
+      required:
+        - title
+        - url
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
