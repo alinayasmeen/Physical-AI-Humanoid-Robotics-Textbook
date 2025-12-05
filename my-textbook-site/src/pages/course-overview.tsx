@@ -26,9 +26,9 @@ export default function CourseOverview(): React.ReactNode {
               </p>
               <h3>Course Structure</h3>
               <ul>
-                <li>**Core Chapters:** Foundational knowledge in robotics, AI, and control systems.</li>
-                <li>**Labs:** Hands-on exercises to reinforce theoretical concepts.</li>
-                <li>**Capstone Projects:** Opportunities to apply learned skills to real-world challenges.</li>
+                <li><h4>Core Chapters:</h4> Foundational knowledge in robotics, AI, and control systems.</li>
+                <li><h4>Labs:</h4> Hands-on exercises to reinforce theoretical concepts.</li>
+                <li><h4>Capstone Projects:</h4> Opportunities to apply learned skills to real-world challenges.</li>
               </ul>
               {/* Add more sections, e.g., using custom components for syllabus, learning outcomes, etc. */}
             </div>
