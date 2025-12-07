@@ -1,10 +1,11 @@
 import os
-import google.generativeai as genai
 from fastapi import FastAPI
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from dotenv import load_dotenv
 from fastembed import TextEmbedding
+import openai # pyright: ignore[reportMissingImports]
+import psycopg # Add this import for Neon Postgres
 
 load_dotenv()
 
@@ -20,11 +21,44 @@ qdrant_client = QdrantClient(
 # Initialize the embedding model
 embedding_model = TextEmbedding()
 
-# Initialize Gemini client for response generation
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Initialize OpenAI client for response generation
+openai.api_key = os.getenv("GEMINI_API_KEY")
+OPENAI_CHAT_MODEL = "gemini-2.5-flash" # Or "gpt-4" or similar
 
 COLLECTION_NAME = "textbook_collection"
+
+# --- Neon Postgres Integration Start ---
+# Initialize Neon Postgres connection
+NEON_DB_URL = os.getenv("NEON_DATABASE_URL")
+if not NEON_DB_URL:
+    raise ValueError("NEON_DATABASE_URL environment variable not set.")
+
+# Function to get an asynchronous database connection
+async def get_db_connection():
+    """
+    Establishes and returns an asynchronous connection to the Neon Postgres database.
+    """
+    try:
+        conn = await psycopg.AsyncConnection.connect(NEON_DB_URL)
+        return conn
+    except Exception as e:
+        print(f"Failed to connect to Neon DB: {e}")
+        raise # Re-raise the exception to indicate connection failure
+
+@app.get("/test-neon-db")
+async def test_neon_db():
+    """
+    Tests the connection to the Neon Postgres database by fetching its version.
+    """
+    try:
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT version();")
+                version = await cur.fetchone()
+                return {"message": f"Successfully connected to Neon DB. PostgreSQL version: {version[0]}"}
+    except Exception as e:
+        return {"message": f"Failed to connect to Neon DB: {e}"}
+# --- Neon Postgres Integration End ---
 
 class ChatRequest(BaseModel):
     query: str
@@ -33,7 +67,8 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat(chat_request: ChatRequest):
     """
-    Handles a chat request.
+    Handles a chat request, retrieving context from Qdrant or selected text,
+    and generating a response using OpenAI.
     """
     if chat_request.selected_text:
         # If text is selected, use it as context
@@ -49,12 +84,29 @@ async def chat(chat_request: ChatRequest):
         )
         context = " ".join([hit.payload["text"] for hit in search_result])
 
-    # Generate a response using Gemini
+    # Generate a response using OpenAI
     try:
-        response = model.generate_content(
-            f"Based on the following context, answer the user's query.\n\nContext:\n{context}\n\nQuery:\n{chat_request.query}"
+        response = openai.chat.completions.create(
+            model=OPENAI_CHAT_MODEL,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for a textbook. Answer questions based on the provided context."},
+                {"role": "user", "content": f"Context:\n{context}\n\nQuery:\n{chat_request.query}"}
+            ]
         )
-        return {"response": response.text}
+        response_text = response.choices[0].message.content
+
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO chat_history (query, response, timestamp)
+                    VALUES (%s, %s, NOW())
+                    """,
+                    (chat_request.query, response_text)
+                )
+                await conn.commit()
+
+        return {"response": response_text}
     except Exception as e:
         # Handle cases where content is blocked or other API errors
         return {"response": f"Sorry, I couldn't generate a response. Error: {e}"}
@@ -65,12 +117,9 @@ async def ingest_data():
     """
     Triggers the ingestion process.
     """
-    # This endpoint can be used to manually trigger the ingestion script.
-    # In a real-world scenario, this might be a protected endpoint.
     import subprocess
     import sys
     try:
-        # It's better to run this as a background task in a real app
         subprocess.Popen([sys.executable, "ingest.py"])
         return {"message": "Ingestion process started in the background."}
     except Exception as e:
