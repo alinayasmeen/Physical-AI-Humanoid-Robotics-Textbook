@@ -1,82 +1,73 @@
 import os
+import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
-from dotenv import load_dotenv
 from fastembed import TextEmbedding
-import openai # pyright: ignore[reportMissingImports]
-import psycopg # Add this import for Neon Postgres
+from dotenv import load_dotenv
+import psycopg
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Initialize Qdrant client
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Qdrant ---
 qdrant_client = QdrantClient(
     url=os.getenv("QDRANT_URL"),
     api_key=os.getenv("QDRANT_API_KEY"),
 )
-
-# Initialize the embedding model
 embedding_model = TextEmbedding()
-
-# Initialize OpenAI client for response generation
-openai.api_key = os.getenv("GEMINI_API_KEY")
-OPENAI_CHAT_MODEL = "gemini-2.5-flash" # Or "gpt-4" or similar
-
 COLLECTION_NAME = "textbook_collection"
 
-# --- Neon Postgres Integration Start ---
-# Initialize Neon Postgres connection
+# --- Gemini API ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.0-flash"  # or gemini-2.5-flash
+
+# --- Neon Postgres ---
 NEON_DB_URL = os.getenv("NEON_DATABASE_URL")
-if not NEON_DB_URL:
-    raise ValueError("NEON_DATABASE_URL environment variable not set.")
 
-# Function to get an asynchronous database connection
 async def get_db_connection():
-    """
-    Establishes and returns an asynchronous connection to the Neon Postgres database.
-    """
-    try:
-        conn = await psycopg.AsyncConnection.connect(NEON_DB_URL)
-        return conn
-    except Exception as e:
-        print(f"Failed to connect to Neon DB: {e}")
-        raise # Re-raise the exception to indicate connection failure
+    return await psycopg.AsyncConnection.connect(NEON_DB_URL)
 
-@app.get("/test-neon-db")
-async def test_neon_db():
-    """
-    Tests the connection to the Neon Postgres database by fetching its version.
-    """
-    try:
-        async with await get_db_connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("SELECT version();")
-                version = await cur.fetchone()
-                return {"message": f"Successfully connected to Neon DB. PostgreSQL version: {version[0]}"}
-    except Exception as e:
-        return {"message": f"Failed to connect to Neon DB: {e}"}
-# --- Neon Postgres Integration End ---
+async def create_chat_history_table():
+    async with await get_db_connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id SERIAL PRIMARY KEY,
+                    query TEXT NOT NULL,
+                    response TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            await conn.commit()
 
+@app.on_event("startup")
+async def startup_event():
+    await create_chat_history_table()
+
+# --- Chat Request Model ---
 class ChatRequest(BaseModel):
     query: str
     selected_text: str = None
 
+# --- Chat Endpoint ---
 @app.post("/chat")
 async def chat(chat_request: ChatRequest):
-    """
-    Handles a chat request, retrieving context from Qdrant or selected text,
-    and generating a response using OpenAI.
-    """
+    # Step 1: Get context
     if chat_request.selected_text:
-        # If text is selected, use it as context
         context = chat_request.selected_text
     else:
-        # Otherwise, retrieve context from Qdrant
         query_embedding = embedding_model.embed([chat_request.query])[0]
-
         search_result = qdrant_client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_embedding.tolist(),
@@ -84,48 +75,36 @@ async def chat(chat_request: ChatRequest):
         )
         context = " ".join([hit.payload["text"] for hit in search_result])
 
-    # Generate a response using OpenAI
+    # Step 2: Call Gemini API inside try/except
     try:
-        response = openai.chat.completions.create(
-            model=OPENAI_CHAT_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant for a textbook. Answer questions based on the provided context."},
-                {"role": "user", "content": f"Context:\n{context}\n\nQuery:\n{chat_request.query}"}
+        url = f"https://generativelanguage.googleapis.com/v1beta2/models/{GEMINI_MODEL}:generateMessage?key={GEMINI_API_KEY}"
+        headers = {"Content-Type": "application/json"}
+        data = {
+           "input": {
+        "messages": [
+            {"author": "system", "content": {"text": "You are a helpful assistant for a textbook."}},
+            {"author": "user", "content": {"text": f"Context:\n{context}\n\nQuery:\n{chat_request.query}"}}
             ]
-        )
-        response_text = response.choices[0].message.content
+        }
+        }
 
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        gemini_response = response.json()
+        response_text = gemini_response["candidates"][0]["content"][0]["text"]
+
+        # Step 3: Save chat history in Neon DB
         async with await get_db_connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    """
-                    INSERT INTO chat_history (query, response, timestamp)
-                    VALUES (%s, %s, NOW())
-                    """,
+                    "INSERT INTO chat_history (query, response, timestamp) VALUES (%s, %s, NOW())",
                     (chat_request.query, response_text)
                 )
                 await conn.commit()
 
         return {"response": response_text}
+
+    except requests.HTTPError as http_err:
+        return {"error": f"HTTP error occurred: {http_err}"}
     except Exception as e:
-        # Handle cases where content is blocked or other API errors
-        return {"response": f"Sorry, I couldn't generate a response. Error: {e}"}
-
-
-@app.post("/ingest")
-async def ingest_data():
-    """
-    Triggers the ingestion process.
-    """
-    import subprocess
-    import sys
-    try:
-        subprocess.Popen([sys.executable, "ingest.py"])
-        return {"message": "Ingestion process started in the background."}
-    except Exception as e:
-        return {"message": f"Failed to start ingestion process: {e}"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        return {"error": str(e)}
