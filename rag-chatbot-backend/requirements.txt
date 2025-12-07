@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+qdrant-client
+pydantic
+python-dotenv
+fastembed
+onnxruntime==1.17.0
+numpy<2
