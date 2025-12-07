@@ -1,20 +1,24 @@
-# Introduction to Physical AI and Humanoid Robotics
+---
+sidebar_position: 1
+---
 
-## What is Physical AI?
-Physical AI refers to artificial intelligence systems that interact with the physical world through sensors and actuators. Unlike purely software-based AI, Physical AI embodies intelligence in physical forms, allowing it to perceive, reason, and act within real-world environments. This field combines robotics, artificial intelligence, and control theory to create autonomous systems capable of performing complex tasks.
+# Introduction to Physical AI & Humanoid Robotics
 
-## Why Humanoid Robotics?
-Humanoid robotics focuses on creating robots that mimic the human form and capabilities. The pursuit of humanoid robots is driven by several factors:
-- **Versatility**: Human-like form allows robots to operate in environments designed for humans.
-- **Interaction**: Natural interaction with humans and human-made tools.
-- **Research Platform**: Provides a complex platform for studying intelligence, locomotion, and manipulation.
+The future of AI extends beyond digital spaces into the physical world. This textbook introduces Physical AI—AI systems that function in reality and comprehend physical laws. Students learn to design, simulate, and deploy humanoid robots capable of natural human interactions.
 
-## Overview of the Textbook
-This textbook will guide you through the fundamental concepts and advanced topics in Physical AI and humanoid robotics. We will cover:
-- Foundations of Robotics (Kinematics, Dynamics, Control Systems)
-- Sensing and Perception
-- Actuation and Manipulation
-- Learning and Adaptation in Robotics
-- Ethical and Societal Implications of Humanoid AI
+## Focus and Theme
+**AI Systems in the Physical World. Embodied Intelligence.**
 
-This journey aims to equip you with the knowledge and tools to understand, design, and contribute to the exciting field of physical AI and humanoid robotics.
+Our goal is to bridge the gap between the digital brain and the physical body. Students will apply their AI knowledge to control Humanoid Robots in simulated and real-world environments.
+
+## Why Physical AI Matters
+Humanoid robots are poised to excel in our human-centered world because they share our physical form and can be trained with abundant data from interacting in human environments. This represents a significant transition from AI models confined to digital environments to embodied intelligence that operates in physical space.
+
+## Learning Outcomes
+By the end of this course, students will be able to:
+*   Understand Physical AI principles and embodied intelligence.
+*   Master ROS 2 (Robot Operating System) for robotic control.
+*   Simulate robots with Gazebo and Unity.
+*   Develop with NVIDIA Isaac AI robot platform.
+*   Design humanoid robots for natural interactions.
+*   Integrate GPT models for conversational robotics.
