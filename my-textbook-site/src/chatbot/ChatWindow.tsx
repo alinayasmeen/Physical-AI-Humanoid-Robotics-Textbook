@@ -13,20 +13,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Capture text selection from the page
+  // Capture selected text from the page
   useEffect(() => {
     const handleSelection = () => {
       const selection = window.getSelection();
       const text = selection?.toString().trim();
-      
-      if (text && text.length > 0) {
-        setSelectedText(text);
-      }
+      if (text && text.length > 0) setSelectedText(text);
     };
 
     document.addEventListener('mouseup', handleSelection);
@@ -34,30 +31,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   }, []);
 
   const handleSendMessage = async () => {
-    if (inputValue.trim() === '' && !selectedText) return;
+    if (!inputValue.trim() && !selectedText) return;
 
     setIsLoading(true);
 
-    // Create user message
+    // Prepare user message for UI
     const userMessage: Message = { 
       text: inputValue || 'Question about selected text',
       sender: 'user',
       selectedText: selectedText || undefined
     };
-    
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
 
     try {
+      // Ensure payload matches FastAPI ChatRequest
+      const payload = {
+        query: inputValue.trim() || 'Question about selected text',
+        selected_text: selectedText || null
+      };
+
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          query: inputValue,
-          selected_text: selectedText || null
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -66,32 +63,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
       const data = await response.json();
       const botMessage: Message = { text: data.response, sender: 'bot' };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
-      
-      // Clear selected text after sending
+      setMessages(prev => [...prev, botMessage]);
+
       setSelectedText('');
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
         text: 'Sorry, something went wrong. Please make sure the backend server is running.',
-        sender: 'bot',
-        selectedText: undefined
+        sender: 'bot'
       };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !isLoading) {
-      handleSendMessage();
-    }
+    if (e.key === 'Enter' && !isLoading) handleSendMessage();
   };
 
-  const clearSelection = () => {
-    setSelectedText('');
-  };
+  const clearSelection = () => setSelectedText('');
 
   return (
     <div className={styles.chatWindow}>
@@ -99,7 +90,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         <h2>📚 Book Assistant</h2>
         <button onClick={onClose}>✕</button>
       </div>
-      
+
       <div className={styles.chatMessages}>
         {messages.length === 0 && (
           <div className={styles.emptyState}>
@@ -109,7 +100,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
             </p>
           </div>
         )}
-        
+
         {messages.map((message, index) => (
           <div key={index} className={`${styles.message} ${styles[message.sender]}`}>
             {message.selectedText && (
@@ -120,7 +111,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
             <div>{message.text}</div>
           </div>
         ))}
-        
+
         {isLoading && (
           <div className={`${styles.message} ${styles.bot}`}>
             <div className={styles.loadingDots}>
@@ -130,7 +121,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -148,7 +139,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
           </button>
         </div>
       )}
-      
+
       <div className={styles.chatInput}>
         <input
           type="text"
