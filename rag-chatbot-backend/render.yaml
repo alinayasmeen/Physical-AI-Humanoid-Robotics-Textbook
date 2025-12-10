@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: physical-ai-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: https://06c65705-4888-4d4d-960c-3d0d1eac376a.europe-west3-0.gcp.cloud.qdrant.io:6333
+        sync: false
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.0uLsEnzT_UYkSgC1bkztNqspqalZlW-xlGq8lN0lPFw
+        sync: false
+      - key: AIzaSyCTmQfzOawf4tSTHmiiFGmdpqcaGNF7Gvo
+        sync: false
+      - key: postgresql://neondb_owner:npg_MpYIywLh34lu@ep-divine-grass-adha9t8g-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        sync: false
