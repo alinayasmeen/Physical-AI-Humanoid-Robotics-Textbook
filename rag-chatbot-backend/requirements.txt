@@ -6,3 +6,5 @@ python-dotenv
 fastembed
 onnxruntime==1.17.0
 numpy<2
+requests
+psycopg[binary]
