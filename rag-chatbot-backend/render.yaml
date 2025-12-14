@@ -3,7 +3,7 @@ services:
     name: physical-ai-backend
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
     envVars:
       - key: https://06c65705-4888-4d4d-960c-3d0d1eac376a.europe-west3-0.gcp.cloud.qdrant.io:6333
         sync: false

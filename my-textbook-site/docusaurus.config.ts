@@ -85,6 +85,16 @@ const config: Config = {
       },
     ],
   ],
+  // Extend the webpack configuration to allow custom components
+  webpack: {
+    configure: (webpackConfig) => {
+      // Add alias for components to be used in MDX
+      webpackConfig.resolve = webpackConfig.resolve || {};
+      webpackConfig.resolve.alias = webpackConfig.resolve.alias || {};
+      webpackConfig.resolve.alias['@site/src/components'] = require('path').resolve(__dirname, 'src/components');
+      return webpackConfig;
+    },
+  },
 
   themeConfig: {
     // Replace with your project's social card

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './styles.module.css';
 import { Message } from './types';
+import { useAuth } from '../contexts/AuthContext';
+import AuthWrapper from './AuthWrapper';
 
 interface ChatWindowProps {
   onClose: () => void;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [selectedText, setSelectedText] = useState<string>('');
@@ -36,7 +39,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     setIsLoading(true);
 
     // Prepare user message for UI
-    const userMessage: Message = { 
+    const userMessage: Message = {
       text: inputValue || 'Question about selected text',
       sender: 'user',
       selectedText: selectedText || undefined
@@ -51,13 +54,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         selected_text: selectedText || null
       };
 
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Unauthorized - likely token expired, redirect to login
+          window.location.reload(); // This will cause the auth check to fail and show login
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -69,7 +82,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
-        text: 'Sorry, something went wrong. Please make sure the backend server is running.',
+        text: 'Sorry, something went wrong. Please make sure the backend server is running and you are logged in.',
         sender: 'bot'
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -84,11 +97,48 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
   const clearSelection = () => setSelectedText('');
 
+  // If not authenticated, show auth wrapper
+  if (!isAuthenticated) {
+    return (
+      <div className={styles.chatWindow}>
+        <div className={styles.chatHeader}>
+          <h2>📚 Book Assistant</h2>
+          <button onClick={onClose}>✕</button>
+        </div>
+        <AuthWrapper onAuthSuccess={() => {}} />
+      </div>
+    );
+  }
+
+  // If authenticated, show the chat interface
   return (
     <div className={styles.chatWindow}>
       <div className={styles.chatHeader}>
-        <h2>📚 Book Assistant</h2>
-        <button onClick={onClose}>✕</button>
+        <div>
+          <h2>📚 Book Assistant</h2>
+          <div style={{ fontSize: '0.7rem', marginTop: '-10px', color: '#ddd' }}>
+            
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => {
+              logout();
+              window.location.reload(); // Refresh to show login screen
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              textDecoration: 'underline'
+            }}
+          >
+            Logout
+          </button>
+          <button onClick={onClose}>✕</button>
+        </div>
       </div>
 
       <div className={styles.chatMessages}>
@@ -130,7 +180,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
           <div className={styles.selectedTextContent}>
             <strong>Selected:</strong> "{selectedText.substring(0, 60)}..."
           </div>
-          <button 
+          <button
             onClick={clearSelection}
             className={styles.clearButton}
             aria-label="Clear selection"
@@ -149,7 +199,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
           placeholder={selectedText ? "Ask about selected text..." : "Ask a question..."}
           disabled={isLoading}
         />
-        <button 
+        <button
           onClick={handleSendMessage}
           disabled={isLoading || (!inputValue.trim() && !selectedText)}
         >

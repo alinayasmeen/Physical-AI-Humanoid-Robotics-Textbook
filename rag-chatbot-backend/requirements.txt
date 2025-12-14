@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+python-multipart
 qdrant-client
 pydantic
 python-dotenv
@@ -8,3 +9,10 @@ onnxruntime==1.17.0
 numpy<2
 requests
 psycopg[binary]
+passlib[bcrypt]
+python-jose[cryptography]
+bcrypt==4.0.1
+openai
+google-cloud-translate
+aiohttp
+httpx
