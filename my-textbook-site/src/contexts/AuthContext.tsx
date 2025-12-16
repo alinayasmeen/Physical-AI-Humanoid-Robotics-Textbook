@@ -49,7 +49,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error) {
       console.error('Error fetching user info:', error);
-      localStorage.removeItem('token');
+      // Network error - keep token, just mark as not authenticated
+      // This prevents clearing the token just because the backend is temporarily down
       setUser(null);
       setIsAuthenticated(false);
     }

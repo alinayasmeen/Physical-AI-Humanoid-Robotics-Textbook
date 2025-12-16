@@ -262,6 +262,23 @@ async def create_chat_history_table():
             """)
             await conn.commit()
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the Physical AI Humanoid Robotics Textbook RAG Chatbot API",
+        "version": "1.0.0",
+        "endpoints": {
+            "POST /register": "User registration",
+            "POST /token": "User login and token generation",
+            "GET /users/me": "Get current user info (requires authentication)",
+            "POST /chat": "Chat with the RAG system (requires authentication)",
+            "POST /translate": "Translate text (requires authentication)",
+            "POST /translate-markdown": "Translate markdown content (requires authentication)",
+        },
+        "description": "This API provides access to a RAG chatbot for the Physical AI Humanoid Robotics Textbook, with authentication, translation capabilities, and chat functionality."
+    }
+
+
 @app.on_event("startup")
 async def startup_event():
     await create_chat_history_table()
