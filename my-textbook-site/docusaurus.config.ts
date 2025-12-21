@@ -48,33 +48,6 @@ const config: Config = {
   ],
 
   plugins: [
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'course',
-        path: 'course',
-        routeBasePath: 'course',
-        sidebarPath: require.resolve('./sidebarsCourse.ts'),
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'labs',
-        path: 'labs',
-        routeBasePath: 'labs',
-        sidebarPath: require.resolve('./sidebarsLabs.ts'),
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'capstone',
-        path: 'capstone',
-        routeBasePath: 'capstone',
-        sidebarPath: require.resolve('./sidebarsCapstone.ts'),
-      },
-    ],
   ],
 
   themeConfig: {

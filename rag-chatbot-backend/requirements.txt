@@ -16,3 +16,4 @@ openai
 google-cloud-translate
 aiohttp
 httpx
+onnxruntime
