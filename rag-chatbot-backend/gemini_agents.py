@@ -72,19 +72,37 @@ async def retrieve_context(query: str):
         query_embedding = list(embedding_model.embed([query]))[0]  # Convert generator to list and get first element
         qdrant_client = get_qdrant_client()
 
-        # Use the correct QdrantClient search method
-        search_result = qdrant_client.search(
-            collection_name=COLLECTION_NAME,
-            query_vector=query_embedding.tolist(),
-            limit=5,
-        )
+        # Use the correct QdrantClient search method based on version
+        # In newer versions, search is the correct method
+        # In older versions, it might be search_points or a different API
+        if hasattr(qdrant_client, 'search'):
+            search_result = qdrant_client.search(
+                collection_name=COLLECTION_NAME,
+                query_vector=query_embedding.tolist(),
+                limit=5,
+            )
+        elif hasattr(qdrant_client, 'search_points'):
+            # Fallback for older versions
+            search_result = qdrant_client.search_points(
+                collection_name=COLLECTION_NAME,
+                query=query_embedding.tolist(),
+                limit=5,
+            )
+        else:
+            print("QdrantClient does not have search or search_points method")
+            return ""
 
         # Extract text from the search results
         context = ""
         if search_result:
-            for hit in search_result:
-                if hasattr(hit, 'payload') and hit.payload and 'text' in hit.payload:
-                    context += hit.payload['text'] + " "
+            # Handle different response formats
+            if hasattr(search_result, '__iter__') and not isinstance(search_result, str):
+                for hit in search_result:
+                    if hasattr(hit, 'payload') and hit.payload and 'text' in hit.payload:
+                        context += hit.payload['text'] + " "
+            else:
+                # Handle other response formats if needed
+                pass
 
         return context.strip()
     except AttributeError as e:
@@ -118,7 +136,7 @@ async def create_gemini_chat_completion(user_id: str, query: str, context: Optio
         # Call the Gemini API using OpenAI SDK
         client = get_gemini_client()
         response = client.chat.completions.create(
-            model="gemini-2.0-flash",
+            model="models/gemini-2.5-flash",
             messages=messages,
             temperature=0.7,
             max_tokens=1000
