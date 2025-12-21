@@ -102,27 +102,6 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          type: 'doc',
-          docId: 'intro',
-          position: 'left',
-          label: 'Course',
-          docsPluginId: 'course',
-        },
-        {
-          type: 'doc',
-          docId: 'intro',
-          position: 'left',
-          label: 'Labs',
-          docsPluginId: 'labs',
-        },
-        {
-          type: 'doc',
-          docId: 'intro',
-          position: 'left',
-          label: 'Capstone',
-          docsPluginId: 'capstone',
-        },
-        {
           to: '/course-overview',
           label: 'Overview',
           position: 'right',
