@@ -1,3 +1,7 @@
+import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
+
+<TranslateToUrdu>
+
 ---
 sidebar_position: 1
 ---
@@ -22,3 +26,5 @@ By the end of this course, students will be able to:
 *   **Develop with NVIDIA Isaac AI robot platform:** Gain hands-on experience with the NVIDIA Isaac SDK, leveraging its advanced tools for perception, navigation, and manipulation to accelerate AI development for robotics, especially within photorealistic simulation.
 *   **Design humanoid robots for natural interactions:** Apply principles of biomechanics, kinematics, and human-robot interaction to design and program humanoid robots that can move, communicate, and collaborate with humans in an intuitive and socially acceptable manner.
 *   **Integrate GPT models for conversational robotics:** Learn to incorporate large language models (LLMs) like GPT into robotic systems to enable natural language understanding, voice command processing, and sophisticated cognitive planning for complex tasks.
+
+</TranslateToUrdu>
