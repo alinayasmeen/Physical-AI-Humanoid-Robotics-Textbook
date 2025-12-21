@@ -71,17 +71,26 @@ async def retrieve_context(query: str):
     try:
         query_embedding = list(embedding_model.embed([query]))[0]  # Convert generator to list and get first element
         qdrant_client = get_qdrant_client()
+
+        # Use the correct QdrantClient search method
         search_result = qdrant_client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_embedding.tolist(),
             limit=5,
         )
-        # Handle potential different response formats
-        if hasattr(search_result, '__iter__'):
-            context = " ".join([hit.payload.get("text", "") if hasattr(hit, 'payload') and hit.payload else "" for hit in search_result if hasattr(hit, 'payload')])
-        else:
-            context = ""
-        return context
+
+        # Extract text from the search results
+        context = ""
+        if search_result:
+            for hit in search_result:
+                if hasattr(hit, 'payload') and hit.payload and 'text' in hit.payload:
+                    context += hit.payload['text'] + " "
+
+        return context.strip()
+    except AttributeError as e:
+        # Handle potential attribute error if search method doesn't exist
+        print(f"QdrantClient search method error: {str(e)}")
+        return ""
     except Exception as e:
         print(f"Error retrieving context: {str(e)}")
         return ""
