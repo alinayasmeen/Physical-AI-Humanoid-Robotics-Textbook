@@ -155,13 +155,25 @@ async def create_gemini_chat_completion(user_id: str, query: str, context: Optio
         print(f"Error in Gemini chat completion: {error_msg}")
 
         # Check if it's a quota error and provide a more user-friendly message
-        if "quota" in error_msg.lower() or "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-            fallback_response = "I'm currently experiencing high demand and have reached my usage limits. Please try again later or check with the administrator about API quotas."
+        if "quota" in error_msg.lower() or "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "generate_content_free_tier" in error_msg:
+            # Provide a more informative fallback response
+            fallback_response = (
+                "I'm currently experiencing high demand and have reached my usage limits for the free tier. "
+                "Please try again later, consider upgrading the API plan, or contact the administrator. "
+                "As an alternative, you can try reducing the frequency of requests or check if the information you need is available in the textbook content directly."
+            )
             # Still save to chat history even with fallback response
             await save_chat_history(user_id, query, fallback_response)
             return {"response": fallback_response}
         else:
-            raise HTTPException(status_code=500, detail=f"Error calling Gemini API: {error_msg}")
+            # For other types of errors, provide a generic error message
+            generic_error_response = (
+                "I'm currently experiencing technical difficulties. "
+                "Please try again later or contact the administrator for assistance."
+            )
+            # Still save to chat history even with error response
+            await save_chat_history(user_id, query, generic_error_response)
+            return {"response": generic_error_response}
 
 # Example usage function
 async def process_user_query(user_id: str, query: str, context: Optional[str] = None):

@@ -1,0 +1,10 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.courseSidebar.category.Physical AI Humanoid Robotics Textbook": {
+    "message": "Physical AI Humanoid Robotics Textbook",
+    "description": "The label for category 'Physical AI Humanoid Robotics Textbook' in sidebar 'courseSidebar'"
+  }
+}
