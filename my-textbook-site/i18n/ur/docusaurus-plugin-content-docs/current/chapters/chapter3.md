@@ -2,9 +2,7 @@
 sidebar_position: 4
 ---
 
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
 
-<TranslateToUrdu>
 
 # باب 3: ایکچو ایشن اور مینیپولیشن
 

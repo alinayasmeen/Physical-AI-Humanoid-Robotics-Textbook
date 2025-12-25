@@ -2,9 +2,6 @@
 sidebar_position: 1
 ---
 
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
-
-<TranslateToUrdu>
 
 # معرفی فزیکل ای اور ہیومنوڈ روبوٹکس
 

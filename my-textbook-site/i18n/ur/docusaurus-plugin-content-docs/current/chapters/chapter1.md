@@ -2,9 +2,6 @@
 sidebar_position: 2
 ---
 
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
-
-<TranslateToUrdu>
 
 # باب 1: روبوٹکس کی بنیادیں
 

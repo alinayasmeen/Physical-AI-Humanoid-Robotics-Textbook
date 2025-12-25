@@ -2,9 +2,6 @@
 sidebar_position: 5
 ---
 
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
-
-<TranslateToUrdu>
 
 # ہفتہ وار تقسیم
 
