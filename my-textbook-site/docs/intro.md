@@ -18,5 +18,3 @@ This textbook will guide you through the fundamental concepts and advanced topic
 - Ethical and Societal Implications of Humanoid AI
 
 This journey aims to equip you with the knowledge and tools to understand, design, and contribute to the exciting field of physical AI and humanoid robotics.
-
-</TranslateToUrdu>
