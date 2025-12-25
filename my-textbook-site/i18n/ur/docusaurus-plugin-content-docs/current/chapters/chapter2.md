@@ -2,9 +2,6 @@
 sidebar_position: 3
 ---
 
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
-
-<TranslateToUrdu>
 
 # باب 2: احساس اور ادراک
 

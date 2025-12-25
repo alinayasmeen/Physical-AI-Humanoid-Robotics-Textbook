@@ -1,7 +1,3 @@
-import TranslateToUrdu from '@site/src/components/TranslateToUrdu';
-
-<TranslateToUrdu>
-
 # Introduction to Physical AI and Humanoid Robotics
 
 ## What is Physical AI?
