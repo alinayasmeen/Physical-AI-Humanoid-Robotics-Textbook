@@ -1,0 +1,102 @@
+# Sensor Calibration Configuration - Starter Template
+# Module 2 Mini-Project 2
+#
+# TODO: Complete the sensor configuration parameters
+
+# Ground truth reference positions for calibration targets
+# These are the known positions of calibration objects in the world
+ground_truth:
+  checkerboard:
+    position: [2.0, 0.0, 1.0]  # x, y, z in meters
+    size: [1.0, 1.0]          # width, height in meters
+    squares: [8, 6]           # columns, rows
+
+  distance_markers:
+    - name: "marker_1m"
+      position: [1.0, 0.0, 0.5]
+    - name: "marker_2m"
+      position: [2.0, 0.0, 0.5]
+    - name: "marker_3m"
+      position: [3.0, 0.0, 0.5]
+    - name: "marker_5m"
+      position: [5.0, 0.0, 0.5]
+
+  reference_cube:
+    position: [1.5, 1.0, 0.25]
+    dimensions: [0.5, 0.5, 0.5]  # x, y, z size
+
+# Camera sensor configuration
+camera:
+  topic: "/camera/image_raw"
+  info_topic: "/camera/camera_info"
+
+  # TODO: Set appropriate resolution
+  resolution:
+    width: 640
+    height: 480
+
+  # TODO: Set field of view (in radians)
+  horizontal_fov: 1.047  # ~60 degrees
+
+  # TODO: Configure update rate
+  update_rate: 30  # Hz
+
+  # TODO: Configure noise parameters
+  noise:
+    enabled: true
+    type: "gaussian"
+    mean: 0.0
+    stddev: 0.02
+
+# LiDAR sensor configuration
+lidar:
+  topic: "/scan"
+
+  # TODO: Configure scan parameters
+  samples: 360          # Number of samples per scan
+  range_min: 0.1        # Minimum range in meters
+  range_max: 10.0       # Maximum range in meters
+
+  # TODO: Configure update rate
+  update_rate: 10  # Hz
+
+  # TODO: Configure noise parameters
+  noise:
+    enabled: true
+    type: "gaussian"
+    mean: 0.0
+    stddev: 0.01  # Standard deviation in meters
+
+# IMU sensor configuration
+imu:
+  topic: "/imu/data"
+
+  # TODO: Configure update rate
+  update_rate: 100  # Hz
+
+  # TODO: Configure noise parameters
+  noise:
+    angular_velocity:
+      mean: [0.0, 0.0, 0.0]
+      stddev: [0.001, 0.001, 0.001]  # rad/s
+    linear_acceleration:
+      mean: [0.0, 0.0, 0.0]
+      stddev: [0.01, 0.01, 0.01]     # m/s^2
+
+# Calibration parameters
+calibration:
+  # Number of samples to collect for each test
+  samples_per_test: 100
+
+  # Time to wait for sensors to stabilize (seconds)
+  warmup_time: 2.0
+
+  # Acceptable error thresholds
+  thresholds:
+    camera_reprojection_error: 0.5     # pixels
+    lidar_range_error: 0.05            # meters
+    imu_gravity_error: 0.1             # m/s^2
+    imu_orientation_drift: 0.1         # degrees/minute
+
+  # Output file for calibration report
+  report_file: "calibration_report.txt"

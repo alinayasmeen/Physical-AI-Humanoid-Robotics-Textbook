@@ -1,0 +1,83 @@
+---
+sidebar_position: 1
+title: Labs Overview
+---
+
+# Hands-On Lab Exercises
+
+Welcome to the practical component of the Physical AI & Humanoid Robotics course. These labs provide hands-on experience with the concepts covered in each chapter.
+
+## Lab Structure
+
+Each lab includes:
+
+- **Objective**: What you will accomplish
+- **Prerequisites**: Required knowledge and prior labs
+- **Estimated Time**: 60-180 minutes
+- **Starter Code**: Templates with TODOs to complete
+- **Solution**: Reference implementation
+- **Validation Script**: Automated testing to verify success
+
+## Lab Schedule
+
+| Lab | Module | Topic | Duration |
+|-----|---------|-------|----------|
+| Lab 1.1 | Module 1 | Hello ROS 2 - Your First Node | 60 min |
+| Lab 1.2 | Module 1 | Publisher-Subscriber Communication | 90 min |
+| Lab 1.3 | Module 1 | ROS 2 Services | 90 min |
+| Lab 1.4 | Module 1 | URDF Basics - 2-DOF Arm | 120 min |
+| Lab 2.1 | Module 2 | Physics Experiments in Gazebo | 60 min |
+| Lab 2.2 | Module 2 | Gazebo Worlds | 90 min |
+| Lab 2.3 | Module 2 | Sensor Visualization | 90 min |
+| **Lab 3.1** | **Module 3** | **Image Subscriber & Basic Processing** | **60 min** |
+| **Lab 3.2** | **Module 3** | **LiDAR Point Cloud Processing** | **90 min** |
+| **Lab 3.3** | **Module 3** | **Multi-Sensor Fusion** | **120 min** |
+| **Lab 3.4** | **Module 3** | **Object Detection Pipeline** | **120 min** |
+| **Lab 3.5** | **Module 3** | **Perception-to-Control Integration** | **150 min** |
+| Lab 7.1 | Module 7 | Isaac Sim Setup & Perception | 120 min |
+| Lab 8.1 | Module 8 | VLA Pipeline Implementation | 180 min |
+| Capstone | Modules 9-10 | Autonomous Robot Project | Ongoing |
+
+## Getting Started
+
+### Environment Setup
+
+Before starting the labs, ensure you have:
+
+1. **ROS 2 Humble** installed on Ubuntu 22.04
+2. **Python 3.10+** with pip
+3. **Gazebo Classic 11** (included with ROS 2 Desktop)
+4. A properly configured **workspace**
+
+### Running Labs
+
+Each lab directory contains:
+
+```text
+labs/lab-XX-XX-name/
+├── README.md          # Lab instructions
+├── starter/           # Starting code (complete the TODOs)
+├── solution/          # Reference implementation
+└── validate.py        # Run this to check your work
+```
+
+### Validation
+
+After completing a lab, run the validation script:
+
+```bash
+cd labs/lab-XX-XX-name
+python validate.py
+```
+
+Green checkmarks indicate success. Red X marks show what needs fixing.
+
+## Tips for Success
+
+1. **Read the README first** - Understand the objective before coding
+2. **Follow the steps in order** - Labs build on previous concepts
+3. **Run validation often** - Catch errors early
+4. **Try the extensions** - Deepen your understanding with optional challenges
+5. **Ask questions** - If stuck, review the chapter content or ask your instructor
+
+Ready to begin? Start with your first lab after completing Chapter 2!

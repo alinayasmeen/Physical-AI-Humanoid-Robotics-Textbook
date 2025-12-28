@@ -1,0 +1,76 @@
+# Sensor Configuration - Module 2 Lab 3 Starter
+#
+# This file defines sensor parameters for the lab.
+# Use these values when configuring sensors in your SDF file.
+#
+# TODO: Implement sensors in your robot model using these parameters
+
+# Camera Configuration
+camera:
+  name: front_camera
+  type: camera
+  # TODO: Configure these parameters in SDF
+  update_rate: 30  # Hz
+  image:
+    width: 640
+    height: 480
+    format: R8G8B8
+  horizontal_fov: 1.047  # radians (~60 degrees)
+  clip:
+    near: 0.1  # meters
+    far: 100.0  # meters
+  topic: camera/image_raw
+  ros_message_type: sensor_msgs/msg/Image
+
+# LiDAR Configuration
+lidar:
+  name: front_lidar
+  type: gpu_lidar  # Use gpu_lidar for better performance
+  # TODO: Configure these parameters in SDF
+  update_rate: 10  # Hz
+  horizontal:
+    samples: 360  # Number of rays
+    resolution: 1
+    min_angle: -3.14159  # radians (-180 degrees)
+    max_angle: 3.14159   # radians (180 degrees)
+  range:
+    min: 0.1   # meters
+    max: 30.0  # meters
+    resolution: 0.01  # meters
+  noise:
+    type: gaussian
+    mean: 0.0
+    stddev: 0.01  # meters
+  topic: scan
+  ros_message_type: sensor_msgs/msg/LaserScan
+
+# IMU Configuration
+imu:
+  name: body_imu
+  type: imu
+  # TODO: Configure these parameters in SDF
+  update_rate: 100  # Hz
+  angular_velocity_noise:
+    type: gaussian
+    mean: 0.0
+    stddev: 0.01  # rad/s
+  linear_acceleration_noise:
+    type: gaussian
+    mean: 0.0
+    stddev: 0.1  # m/s^2
+  topic: imu/data
+  ros_message_type: sensor_msgs/msg/Imu
+
+# Bridge Configuration
+# Use these commands to bridge Gazebo topics to ROS 2
+bridge_commands:
+  - ros2 run ros_gz_bridge parameter_bridge /camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image
+  - ros2 run ros_gz_bridge parameter_bridge /scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan
+  - ros2 run ros_gz_bridge parameter_bridge /imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU
+
+# Combined bridge command
+combined_bridge: >
+  ros2 run ros_gz_bridge parameter_bridge
+  /camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image
+  /scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan
+  /imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU

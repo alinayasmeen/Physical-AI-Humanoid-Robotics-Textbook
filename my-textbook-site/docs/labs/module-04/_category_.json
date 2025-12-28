@@ -1,0 +1,8 @@
+{
+  "label": "Module 4: VLA System Labs",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Hands-on labs for Vision-Language-Action (VLA) systems. Implement multimodal AI systems that integrate vision, language understanding, and robotic action."
+  }
+}

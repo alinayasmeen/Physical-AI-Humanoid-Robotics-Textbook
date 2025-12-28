@@ -1,0 +1,12 @@
+{
+  "label": "Module 1: The Robotic Nervous System (ROS 2)",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn the foundations of Physical AI and master ROS 2, the middleware that serves as the 'nervous system' of modern robots. This module covers Weeks 1-4 of the course."
+  },
+  "customProps": {
+    "duration": "Weeks 1-4",
+    "topics": ["Physical AI", "ROS 2", "rclpy", "URDF", "Simulation"]
+  }
+}

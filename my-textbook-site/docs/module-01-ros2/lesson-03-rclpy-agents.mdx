@@ -1,0 +1,256 @@
+---
+sidebar_position: 3
+title: "Lesson 3: Python Agents with rclpy"
+description: "Create ROS 2 nodes using Python, implement publishers, subscribers, and services"
+keywords: [rclpy, ros 2 python, publisher, subscriber, service, node, robotics programming]
+---
+
+# Lesson 3: Python Agents with rclpy
+
+<div className="learning-objectives">
+
+**Learning Objectives**
+
+After completing this lesson, you will be able to:
+1. **Create** ROS 2 nodes using the rclpy Python library
+2. **Implement** publisher nodes that send data to topics
+3. **Build** subscriber nodes that receive and process data
+4. **Develop** service servers for request-response patterns
+5. **Apply** the agent pattern: perception → reasoning → action
+
+</div>
+
+## 3.1 Introduction to rclpy
+
+**rclpy** is the official Python client library for ROS 2. It provides a Pythonic interface to all ROS 2 functionality while maintaining compatibility with nodes written in C++ or other languages.
+
+### Why Python for ROS 2?
+
+| Advantage | Description |
+|-----------|-------------|
+| Rapid prototyping | Faster development cycle for testing ideas |
+| AI/ML integration | Native support for PyTorch, TensorFlow |
+| Readability | Cleaner code for educational purposes |
+| Accessibility | Lower barrier for new roboticists |
+
+For production humanoid robots, performance-critical components often use C++, but Python excels for high-level behaviors, perception pipelines, and research prototypes.
+
+## 3.2 Creating Your First Node
+
+Every ROS 2 node follows a consistent structure. Here's the minimal template:
+
+```python
+import rclpy
+from rclpy.node import Node
+
+class MinimalNode(Node):
+    def __init__(self):
+        super().__init__('minimal_node')
+        self.get_logger().info('Node started!')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MinimalNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+### Key Components
+
+- **`rclpy.init()`**: Initializes the ROS 2 client library
+- **`Node` class**: Base class providing ROS 2 functionality
+- **`rclpy.spin()`**: Keeps the node running, processing callbacks
+- **`rclpy.shutdown()`**: Cleans up resources
+
+:::tip Naming Convention
+Node names should be lowercase with underscores: `camera_driver`, `arm_controller`, `path_planner`.
+:::
+
+## 3.3 Publisher Node
+
+Publishers send data to topics. This example publishes velocity commands:
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+class VelocityPublisher(Node):
+    def __init__(self):
+        super().__init__('velocity_publisher')
+        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.timer = self.create_timer(0.1, self.publish_velocity)
+        self.get_logger().info('Velocity publisher started')
+
+    def publish_velocity(self):
+        msg = Twist()
+        msg.linear.x = 0.5  # Forward at 0.5 m/s
+        msg.angular.z = 0.0  # No rotation
+        self.publisher.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = VelocityPublisher()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### Publisher Components
+
+- **`create_publisher(msg_type, topic, qos)`**: Creates publisher
+- **`create_timer(period, callback)`**: Triggers periodic publishing
+- **`publish(msg)`**: Sends message to topic
+
+The QoS (Quality of Service) parameter `10` sets the queue depth—how many messages to buffer if subscribers are slow.
+
+## 3.4 Subscriber Node
+
+Subscribers receive data from topics. This example processes velocity commands:
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+class VelocitySubscriber(Node):
+    def __init__(self):
+        super().__init__('velocity_subscriber')
+        self.subscription = self.create_subscription(
+            Twist, '/cmd_vel', self.velocity_callback, 10)
+        self.get_logger().info('Velocity subscriber started')
+
+    def velocity_callback(self, msg):
+        self.get_logger().info(
+            f'Received: linear={msg.linear.x:.2f}, angular={msg.angular.z:.2f}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = VelocitySubscriber()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### Callback Pattern
+
+The callback function `velocity_callback` executes whenever a message arrives. Keep callbacks fast—heavy processing should be offloaded to separate threads or timers.
+
+## 3.5 Service Server
+
+Services handle synchronous request-response communication:
+
+```python
+import rclpy
+from rclpy.node import Node
+from std_srvs.srv import SetBool
+
+class EmergencyStopService(Node):
+    def __init__(self):
+        super().__init__('emergency_stop_service')
+        self.srv = self.create_service(
+            SetBool, '/emergency_stop', self.handle_emergency)
+        self.stopped = False
+        self.get_logger().info('Emergency stop service ready')
+
+    def handle_emergency(self, request, response):
+        self.stopped = request.data
+        response.success = True
+        response.message = 'Stopped' if self.stopped else 'Running'
+        self.get_logger().info(f'Emergency stop: {response.message}')
+        return response
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = EmergencyStopService()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### Service Interface
+
+`SetBool` is a standard service type with:
+- **Request**: `bool data`
+- **Response**: `bool success`, `string message`
+
+For custom behavior, you can define your own service types in `.srv` files.
+
+## 3.6 Agent Pattern - Perception to Action
+
+A robotic **agent** combines perception, reasoning, and action. Here's a simple reactive agent:
+
+```python
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+
+class ObstacleAvoidanceAgent(Node):
+    def __init__(self):
+        super().__init__('obstacle_avoidance_agent')
+        # Perception: Subscribe to LIDAR
+        self.scan_sub = self.create_subscription(
+            LaserScan, '/scan', self.perception_callback, 10)
+        # Action: Publish velocity commands
+        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.min_distance = float('inf')
+        self.get_logger().info('Obstacle avoidance agent started')
+
+    def perception_callback(self, scan):
+        # Perception: Find minimum distance
+        self.min_distance = min(scan.ranges)
+        # Reasoning + Action: React to obstacles
+        cmd = Twist()
+        if self.min_distance < 0.5:
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.5  # Turn away
+        else:
+            cmd.linear.x = 0.3
+            cmd.angular.z = 0.0  # Go forward
+        self.cmd_pub.publish(cmd)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ObstacleAvoidanceAgent()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+This simple agent demonstrates the perception-action loop that underlies all robotic behavior. More sophisticated agents add planning, state machines, or learned policies between perception and action.
+
+## Summary
+
+This lesson introduced practical ROS 2 programming with Python:
+
+- **rclpy** provides a Pythonic interface to ROS 2
+- **Nodes** are created by inheriting from `Node` and using `rclpy.spin()`
+- **Publishers** send data using `create_publisher()` and `publish()`
+- **Subscribers** receive data via callbacks from `create_subscription()`
+- **Services** handle request-response with `create_service()`
+- **Agents** combine perception and action in reactive control loops
+
+The next lesson introduces URDF—the format for describing robot physical structure, completing our foundation for building humanoid robot systems.
+
+---
+
+## Lab Exercises
+
+Complete these hands-on labs to practice the concepts:
+
+1. **[Lab 1: Hello ROS 2](/labs/module-01/lab-01-hello-ros2)** - Create your first node (60 min)
+2. **[Lab 2: Publisher-Subscriber](/labs/module-01/lab-02-pubsub)** - Implement topic communication (90 min)
+3. **[Lab 3: Services](/labs/module-01/lab-03-services)** - Build request-response patterns (90 min)
+
+---
+
+## References
+
+1. ROS 2 Documentation. (2024). *Writing a Simple Publisher and Subscriber (Python)*. https://docs.ros.org/en/humble/
+2. ROS 2 Documentation. (2024). *Writing a Simple Service and Client (Python)*. https://docs.ros.org/en/humble/
+3. Macenski, S., et al. (2022). Robot Operating System 2: Design, architecture, and uses in the wild. *Science Robotics*, 7(66).
