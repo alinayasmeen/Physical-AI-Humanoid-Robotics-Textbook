@@ -1,0 +1,9 @@
+{
+  "label": "Module 3 Labs",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "title": "Module 3 Labs: Perception & Sensors",
+    "description": "Hands-on lab exercises for computer vision, LiDAR processing, sensor fusion, and perception pipeline implementation."
+  }
+}

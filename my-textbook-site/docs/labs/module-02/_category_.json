@@ -1,0 +1,9 @@
+{
+  "label": "Module 2 Labs",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "title": "Module 2 Labs: The Digital Twin",
+    "description": "Hands-on lab exercises for physics simulation, Gazebo world creation, and sensor configuration."
+  }
+}

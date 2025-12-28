@@ -1,0 +1,9 @@
+{
+  "label": "Module 3: Perception & Sensors",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "title": "Module 3: Perception & Sensors (Computer Vision & Sensor Fusion)",
+    "description": "Master computer vision fundamentals, multi-sensor integration, and perception pipelines for robotics using OpenCV and ROS 2."
+  }
+}

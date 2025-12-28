@@ -1,0 +1,88 @@
+<?xml version="1.0" ?>
+<!--
+  Empty World Template - Module 2 Lab 2
+
+  TODO: Complete the following tasks:
+  1. Configure physics parameters
+  2. Add at least 3 obstacles (box, cylinder, sphere)
+  3. Configure lighting with shadows
+  4. Rename to custom_world.sdf when complete
+-->
+<sdf version="1.8">
+  <world name="custom_world">
+
+    <!-- TODO 1: Add physics configuration -->
+    <!-- Hint: Configure step size, real-time factor, and solver -->
+    <physics name="default" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Required Plugins -->
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+
+    <!-- TODO 2: Add lighting configuration -->
+    <!-- Hint: Add a directional light (sun) with shadows -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.5 -1</direction>
+    </light>
+
+    <!-- Ground Plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- TODO 3: Add obstacle 1 (Box) -->
+    <!-- Pose format: x y z roll pitch yaw -->
+    <!-- Example position: 3 0 0.5 (3m forward, 0.5m up) -->
+
+
+    <!-- TODO 4: Add obstacle 2 (Cylinder) -->
+    <!-- Example position: 0 3 0.75 -->
+
+
+    <!-- TODO 5: Add obstacle 3 (Sphere) -->
+    <!-- Example position: -2 2 0.5 -->
+
+
+  </world>
+</sdf>

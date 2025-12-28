@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<!--
+Lab 4: URDF Basics - Starter Code
+Create a 2-DOF robotic arm
+
+TODO: Complete the URDF following the instructions below
+-->
+<robot name="simple_arm">
+
+  <!-- ============================================ -->
+  <!-- TASK 1: Base Link                           -->
+  <!-- ============================================ -->
+
+  <!-- TODO: Create base_link with:
+       - Visual: box size="0.1 0.1 0.05"
+       - Material: gray (rgba="0.5 0.5 0.5 1.0")
+       - Collision: same as visual
+  -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <!-- TODO: Add box geometry -->
+      </geometry>
+      <material name="gray">
+        <!-- TODO: Add color -->
+      </material>
+    </visual>
+  </link>
+
+  <!-- ============================================ -->
+  <!-- TASK 2: Shoulder Joint and Upper Arm        -->
+  <!-- ============================================ -->
+
+  <!-- TODO: Create shoulder joint:
+       - Type: revolute
+       - Parent: base_link
+       - Child: upper_arm
+       - Origin: xyz="0 0 0.05"
+       - Axis: xyz="0 1 0" (Y-axis rotation)
+       - Limits: lower="-1.57" upper="1.57" (±90°)
+  -->
+
+
+  <!-- TODO: Create upper_arm link:
+       - Visual: cylinder radius="0.02" length="0.3"
+       - Visual origin: xyz="0 0 0.15" (center of cylinder)
+       - Material: blue (rgba="0.2 0.2 0.8 1.0")
+  -->
+
+
+  <!-- ============================================ -->
+  <!-- TASK 3: Elbow Joint and Lower Arm           -->
+  <!-- ============================================ -->
+
+  <!-- TODO: Create elbow joint:
+       - Type: revolute
+       - Parent: upper_arm
+       - Child: lower_arm
+       - Origin: xyz="0 0 0.3" (at end of upper_arm)
+       - Axis: xyz="0 1 0"
+       - Limits: lower="0" upper="2.35" (0° to 135°)
+  -->
+
+
+  <!-- TODO: Create lower_arm link:
+       - Visual: cylinder radius="0.015" length="0.2"
+       - Visual origin: xyz="0 0 0.1"
+       - Material: green (rgba="0.2 0.8 0.2 1.0")
+  -->
+
+
+  <!-- TODO: Create end_effector link:
+       - Visual: sphere radius="0.02"
+       - Material: red (rgba="0.8 0.2 0.2 1.0")
+  -->
+
+
+  <!-- TODO: Create wrist joint (fixed):
+       - Type: fixed
+       - Parent: lower_arm
+       - Child: end_effector
+       - Origin: xyz="0 0 0.2"
+  -->
+
+
+</robot>

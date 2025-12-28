@@ -1,0 +1,231 @@
+<?xml version="1.0" ?>
+<!--
+  Navigation Testbed World - Starter Template
+  Module 2 Mini-Project 1
+
+  TODO: Complete this world file to create a navigation testbed
+-->
+<sdf version="1.8">
+  <world name="navigation_testbed">
+
+    <!-- Physics Configuration -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Plugins for ROS 2 Integration -->
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <!-- Lighting -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground Plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>30 30</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.8</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>30 30</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- TODO: Add Start Position Marker (Green) -->
+    <!--
+    Create a visual-only marker at position (-8, 0, 0)
+    Use a cylinder (radius 0.3, height 0.1) with green color
+    Set static=true and no collision
+    -->
+
+    <!-- TODO: Add Waypoint 1 Marker (Yellow) -->
+    <!--
+    Create a visual-only marker at position (-3, 3, 0)
+    Use a cylinder (radius 0.3, height 0.1) with yellow color
+    -->
+
+    <!-- TODO: Add Waypoint 2 Marker (Yellow) -->
+    <!--
+    Create a visual-only marker at position (3, -2, 0)
+    Use a cylinder (radius 0.3, height 0.1) with yellow color
+    -->
+
+    <!-- TODO: Add Goal Position Marker (Red) -->
+    <!--
+    Create a visual-only marker at position (8, 0, 0)
+    Use a cylinder (radius 0.3, height 0.1) with red color
+    -->
+
+    <!-- TODO: Add Static Obstacle 1 - Box -->
+    <!--
+    Create a box obstacle at position (-5, 2, 0.5)
+    Size: 1.0 x 1.0 x 1.0
+    Include both collision and visual
+    Set static=true
+    -->
+
+    <!-- TODO: Add Static Obstacle 2 - Cylinder -->
+    <!--
+    Create a cylinder obstacle at position (0, 0, 0.75)
+    Radius: 0.5, Height: 1.5
+    Include both collision and visual
+    Set static=true
+    -->
+
+    <!-- TODO: Add Static Obstacle 3 - Wall -->
+    <!--
+    Create a wall at position (4, 3, 0.5)
+    Size: 3.0 x 0.2 x 1.0
+    Include both collision and visual
+    Set static=true
+    -->
+
+    <!-- TODO: Add Static Obstacle 4 - Box -->
+    <!--
+    Create a box obstacle at position (6, -3, 0.4)
+    Size: 0.8 x 0.8 x 0.8
+    Include both collision and visual
+    Set static=true
+    -->
+
+    <!-- TODO: Add Static Obstacle 5 - Cylinder -->
+    <!--
+    Create a cylinder obstacle at position (-2, -4, 0.5)
+    Radius: 0.4, Height: 1.0
+    Include both collision and visual
+    Set static=true
+    -->
+
+    <!-- Boundary Walls (already implemented) -->
+    <model name="boundary_north">
+      <static>true</static>
+      <pose>0 10 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+          <material>
+            <ambient>0.4 0.2 0.1 1</ambient>
+            <diffuse>0.6 0.3 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="boundary_south">
+      <static>true</static>
+      <pose>0 -10 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+          <material>
+            <ambient>0.4 0.2 0.1 1</ambient>
+            <diffuse>0.6 0.3 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="boundary_east">
+      <static>true</static>
+      <pose>10 0 0.5 0 0 1.5708</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+          <material>
+            <ambient>0.4 0.2 0.1 1</ambient>
+            <diffuse>0.6 0.3 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="boundary_west">
+      <static>true</static>
+      <pose>-10 0 0.5 0 0 1.5708</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>20 0.2 1.0</size></box>
+          </geometry>
+          <material>
+            <ambient>0.4 0.2 0.1 1</ambient>
+            <diffuse>0.6 0.3 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

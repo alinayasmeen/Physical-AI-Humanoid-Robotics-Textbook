@@ -1,0 +1,8 @@
+{
+  "label": "Module 4: Vision-Language-Action (VLA) Systems",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn about Vision-Language-Action (VLA) systems for Physical AI and Humanoid Robotics. This module covers the integration of vision, language understanding, and robotic action in multimodal AI systems."
+  }
+}

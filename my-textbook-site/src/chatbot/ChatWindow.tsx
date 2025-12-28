@@ -57,7 +57,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       // Get token from localStorage
       const token = localStorage.getItem('token');
 
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

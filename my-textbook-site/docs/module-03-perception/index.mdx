@@ -1,0 +1,82 @@
+---
+sidebar_position: 0
+title: "Module 3 Overview"
+description: "Master computer vision, sensor integration, and perception pipelines for robotics"
+---
+
+# Module 3: Perception & Sensors
+
+**Duration**: Weeks 7-9 (3 weeks)
+
+## Overview
+
+This module covers the perception systems that enable robots to understand their environment. You'll learn computer vision fundamentals, work with multiple sensor types, and build complete perception pipelines that connect to robot control systems.
+
+## Learning Objectives
+
+By the end of this module, you will be able to:
+
+1. Process camera images using OpenCV and ROS 2 image transport
+2. Work with LiDAR point clouds, IMU data, and depth sensors
+3. Fuse multiple sensor streams for robust perception
+4. Implement object detection and tracking pipelines
+5. Connect perception outputs to robot control systems
+
+## Prerequisites
+
+- **Module 1**: ROS 2 fundamentals (nodes, topics, publishers/subscribers)
+- **Module 2**: Simulation basics (Gazebo, sensor configuration)
+- **Python**: Comfortable with NumPy arrays and basic image processing concepts
+
+## Module Structure
+
+### Lesson 1: Computer Vision Fundamentals
+- OpenCV basics with ROS 2
+- Image processing operations
+- ROS 2 image transport and cv_bridge
+- Camera calibration concepts
+
+### Lesson 2: Multi-Sensor Integration
+- LiDAR point clouds (PointCloud2)
+- IMU data processing
+- Depth sensors and 3D perception
+- Sensor fusion concepts
+
+### Lesson 3: Perception Pipelines
+- Object detection with YOLO
+- Object tracking over time
+- Perception-to-control interfaces
+- Performance metrics (IoU, mAP)
+
+## Labs
+
+| Lab | Duration | Topic |
+|-----|----------|-------|
+| Lab 1 | 60 min | Image Subscriber & Processing |
+| Lab 2 | 90 min | LiDAR Point Cloud Processing |
+| Lab 3 | 120 min | Multi-Sensor Fusion |
+| Lab 4 | 120 min | Object Detection Pipeline |
+| Lab 5 | 150 min | Perception-Control Integration |
+
+## Key Technologies
+
+- **OpenCV**: Industry-standard computer vision library
+- **cv_bridge**: ROS 2 to OpenCV conversion
+- **sensor_msgs**: Standard ROS 2 sensor message types
+- **vision_msgs**: Detection and tracking message types
+- **message_filters**: Sensor synchronization
+
+## Success Criteria
+
+After completing this module, you should be able to:
+
+- [ ] Subscribe to camera topics and process images with OpenCV
+- [ ] Convert between ROS 2 Image messages and OpenCV arrays
+- [ ] Process LiDAR point clouds for obstacle detection
+- [ ] Synchronize multiple sensor streams
+- [ ] Implement basic object detection and tracking
+- [ ] Generate robot velocity commands from visual feedback
+
+## What's Next
+
+**Module 4: Motion Planning & Control** - Learn path planning algorithms, motion control for manipulators, and navigation stack integration.

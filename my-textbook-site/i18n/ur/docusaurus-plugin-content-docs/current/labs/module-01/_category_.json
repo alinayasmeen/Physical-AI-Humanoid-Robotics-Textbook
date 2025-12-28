@@ -1,0 +1,11 @@
+{
+  "label": "موڈیول 1 لیبز",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "موڈیول 1: روبوٹک نروس سسٹم کے لیے عملی لیب تربیت. ROS 2 کی بنیادیں اور URDF ماڈلنگ کا مشق کرنے کے لیے یہ لیبز مکمل کریں."
+  },
+  "customProps": {
+    "estimatedTime": "8-10 گھنٹے کل"
+  }
+}

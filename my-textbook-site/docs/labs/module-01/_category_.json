@@ -1,0 +1,11 @@
+{
+  "label": "Module 1 Labs",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Hands-on lab exercises for Module 1: The Robotic Nervous System. Complete these labs to practice ROS 2 fundamentals and URDF modeling."
+  },
+  "customProps": {
+    "estimatedTime": "8-10 hours total"
+  }
+}

@@ -1,0 +1,114 @@
+# Sensor Calibration Configuration - Complete Solution
+# Module 2 Mini-Project 2
+
+# Ground truth reference positions for calibration targets
+ground_truth:
+  checkerboard:
+    position: [2.0, 0.0, 1.0]  # x, y, z in meters
+    size: [1.0, 1.0]          # width, height in meters
+    squares: [8, 6]           # columns, rows
+    square_size: 0.125        # size of each square in meters
+
+  distance_markers:
+    - name: "marker_1m"
+      position: [1.0, 0.0, 0.5]
+      expected_range: 1.0
+    - name: "marker_2m"
+      position: [2.0, 0.0, 0.5]
+      expected_range: 2.0
+    - name: "marker_3m"
+      position: [3.0, 0.0, 0.5]
+      expected_range: 3.0
+    - name: "marker_5m"
+      position: [5.0, 0.0, 0.5]
+      expected_range: 5.0
+
+  reference_cube:
+    position: [1.5, 1.0, 0.25]
+    dimensions: [0.5, 0.5, 0.5]
+
+  # Physical constants
+  gravity: 9.81  # m/s^2
+
+# Camera sensor configuration
+camera:
+  topic: "/camera/image_raw"
+  info_topic: "/camera/camera_info"
+
+  resolution:
+    width: 640
+    height: 480
+
+  horizontal_fov: 1.047  # 60 degrees in radians
+  vertical_fov: 0.785    # ~45 degrees
+
+  update_rate: 30  # Hz
+
+  # Image format
+  encoding: "rgb8"
+
+  noise:
+    enabled: true
+    type: "gaussian"
+    mean: 0.0
+    stddev: 0.02
+
+# LiDAR sensor configuration
+lidar:
+  topic: "/scan"
+
+  samples: 360
+  range_min: 0.1
+  range_max: 10.0
+  update_rate: 10  # Hz
+
+  # Scan parameters
+  angle_min: -3.14159  # -180 degrees
+  angle_max: 3.14159   # 180 degrees
+
+  noise:
+    enabled: true
+    type: "gaussian"
+    mean: 0.0
+    stddev: 0.01
+
+# IMU sensor configuration
+imu:
+  topic: "/imu/data"
+  frame_id: "imu_link"
+
+  update_rate: 100  # Hz
+
+  noise:
+    angular_velocity:
+      mean: [0.0, 0.0, 0.0]
+      stddev: [0.001, 0.001, 0.001]  # rad/s
+    linear_acceleration:
+      mean: [0.0, 0.0, 0.0]
+      stddev: [0.01, 0.01, 0.01]     # m/s^2
+
+  # Bias parameters (for advanced calibration)
+  bias:
+    angular_velocity: [0.0, 0.0, 0.0]
+    linear_acceleration: [0.0, 0.0, 0.0]
+
+# Calibration parameters
+calibration:
+  samples_per_test: 100
+  warmup_time: 2.0
+
+  # Acceptable error thresholds
+  thresholds:
+    camera_reprojection_error: 0.5     # pixels
+    lidar_range_error_1m: 0.02         # meters at 1m
+    lidar_range_error_3m: 0.03         # meters at 3m
+    lidar_range_error_5m: 0.05         # meters at 5m
+    imu_gravity_error: 0.05            # m/s^2
+    imu_orientation_drift: 0.1         # degrees/minute
+    imu_accel_noise: 0.02              # m/s^2 std
+    imu_gyro_noise: 0.002              # rad/s std
+
+  # Output configuration
+  report_file: "calibration_report.txt"
+  save_raw_data: true
+  raw_data_file: "calibration_data.npz"
