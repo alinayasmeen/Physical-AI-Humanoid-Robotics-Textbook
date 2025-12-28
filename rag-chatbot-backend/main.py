@@ -157,9 +157,19 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 async def authenticate_user(email: str, password: str):
     try:
+        print(f"Attempting to authenticate user: {email}")
         user = await get_user_by_email(email)
-        if not user or not verify_password(password, user["hashed_password"]):
+        if not user:
+            print(f"User not found: {email}")
             return False
+
+        print(f"User found: {email}, checking password...")
+        password_valid = verify_password(password, user["hashed_password"])
+        if not password_valid:
+            print(f"Password invalid for user: {email}")
+            return False
+
+        print(f"Authentication successful for user: {email}")
         return user
     except Exception as e:
         print(f"Error in authenticate_user: {e}")
@@ -188,10 +198,17 @@ import hashlib
 
 async def get_db_connection():
     try:
-        return await psycopg.AsyncConnection.connect(NEON_DB_URL)
+        # Check if we're in development mode and potentially use a different DB
+        import os
+        db_url = os.getenv("DATABASE_URL", NEON_DB_URL)
+        if not db_url:
+            raise ValueError("No database URL configured")
+        return await psycopg.AsyncConnection.connect(db_url)
     except Exception as e:
         print(f"Database connection error: {e}")
-        print(f"NEON_DB_URL: {NEON_DB_URL[:50]}..." if NEON_DB_URL else "NEON_DB_URL is not set")
+        print(f"Database URL: {NEON_DB_URL[:50]}..." if NEON_DB_URL else "Database URL is not set")
+        # In development, you might want to use a local PostgreSQL instance
+        # DATABASE_URL='postgresql://username:password@localhost:5432/dbname'
         raise e
 
 
@@ -353,9 +370,11 @@ class ChatRequest(BaseModel):
 @app.post("/register", response_model=Token)
 async def register(user: UserCreate):
     try:
+        print(f"Registration attempt for user: {user.email}")
         # Check if user already exists
         existing_user = await get_user_by_email(user.email)
         if existing_user:
+            print(f"Registration failed - user already exists: {user.email}")
             raise HTTPException(
                 status_code=400,
                 detail="Email already registered"
@@ -363,6 +382,7 @@ async def register(user: UserCreate):
 
         # Create new user
         db_user = await create_user(user.email, user.full_name, user.password)
+        print(f"User created successfully: {user.email}")
 
         # Create access token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -384,15 +404,18 @@ async def register(user: UserCreate):
 @app.post("/token", response_model=Token)
 async def login_for_access_token(username: str = Form(...), password: str = Form(...)):
     try:
+        print(f"Login attempt for user: {username}")
         # The frontend sends 'username' but it's actually the email
         user_data = await authenticate_user(username, password)
         if not user_data:
+            print(f"Authentication failed for user: {username}")
             raise HTTPException(
                 status_code=401,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        print(f"Authentication successful for user: {username}")
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user_data["email"]}, expires_delta=access_token_expires

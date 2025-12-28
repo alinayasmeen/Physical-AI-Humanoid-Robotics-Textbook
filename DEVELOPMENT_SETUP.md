@@ -84,6 +84,27 @@ REACT_APP_API_BASE_URL=http://localhost:8000
 
 This will make the frontend use your local backend instead of the remote one, avoiding CORS issues.
 
+## Environment Variables for Backend Development
+
+Create a `.env` file in the `rag-chatbot-backend` directory with the following variables:
+
+```env
+SECRET_KEY=your-secret-key-here
+QDRANT_URL=your-qdrant-url
+QDRANT_API_KEY=your-qdrant-api-key
+GEMINI_API_KEY=your-gemini-api-key
+NEON_DATABASE_URL=your-neon-db-url
+FRONTEND_URL=http://localhost:3000
+RENDER_EXTERNAL_URL=https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com
+```
+
+For local development, you can use a local PostgreSQL database instead of Neon:
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/robotics_textbook
+```
+
+Note: If you're using the remote Neon database, make sure the connection string is valid and accessible.
+
 ## Running with Local Backend
 
 1. Start the backend server first:
