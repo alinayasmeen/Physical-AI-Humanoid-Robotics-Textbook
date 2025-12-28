@@ -53,21 +53,21 @@ const config: Config = {
       return {
         name: 'docusaurus-plugin-inject-env',
         configureWebpack(config, isServer, utils) {
-          const { ProvidePlugin } = require('webpack');
+          const webpack = require('webpack');
           return {
             resolve: {
-              alias: {
+              fallback: {
                 // Define process for browser compatibility
                 process: require.resolve('process/browser'),
               },
             },
             plugins: [
               // Define environment variables for the client
-              new (require('webpack')).DefinePlugin({
+              new webpack.DefinePlugin({
                 'process.env.REACT_APP_API_URL': JSON.stringify(process.env.REACT_APP_API_URL || 'https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com'),
               }),
               // Provide process globally
-              new ProvidePlugin({
+              new webpack.ProvidePlugin({
                 process: 'process/browser',
               }),
             ],
