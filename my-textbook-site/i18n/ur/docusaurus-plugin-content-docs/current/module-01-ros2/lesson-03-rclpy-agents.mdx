@@ -1,0 +1,256 @@
+---
+sidebar_position: 3
+title: "لیسنس 3: rclpy کے ساتھ پائی تھن ایجنٹس"
+description: "پائی تھن کا استعمال کرتے ہوئے ROS 2 نوڈز تخلیق کریں، پبلشرز، سبسکرائیبرز، اور سروسز نافذ کریں"
+keywords: [rclpy، ros 2 python، publisher، subscriber، service، node، robotics programming]
+---
+
+# لیسنس 3: rclpy کے ساتھ پائی تھن ایجنٹس
+
+<div className="learning-objectives">
+
+**سیکھنے کے اہداف**
+
+اس لیسنس کو مکمل کرنے کے بعد، آپ کے اہل ہوں گے:
+1. **تخلیق کریں** ROS 2 نوڈز rclpy پائی تھن لائبریری کا استعمال کرتے ہوئے
+2. **نافذ کریں** پبلشر نوڈز جو ٹاپکس کو ڈیٹا بھیجتے ہیں
+3. **تعمیر کریں** سبسکرائیب نوڈز جو ڈیٹا وصول کرتے اور پروسیس کرتے ہیں
+4. **ترقی دیں** سروس سرورز درخواست-جواب کے نمونوں کے لیے
+5. **اطلاق کریں** ایجنٹ پیٹرن: احساس → سوچ → ایکشن
+
+</div>
+
+## 3.1 rclpy کا تعارف
+
+**rclpy** ROS 2 کے لیے سرکاری پائی تھن کلائنٹ لائبریری ہے۔ یہ تمام ROS 2 فعالیت کے لیے ایک پائی تھنک انٹرفیس فراہم کرتا ہے جبکہ C++ یا دیگر زبانوں میں لکھے گئے نوڈز کے ساتھ مطابقت برقرار رکھتا ہے۔
+
+### ROS 2 کے لیے پائی تھن کیوں؟
+
+| فائدہ | تفصیل |
+|-----------|-------------|
+| تیز پروٹو ٹائپنگ | خیالات کی جانچ کے لیے تیز تر ترقی کا چکر |
+| AI/ML انضمام | PyTorch، TensorFlow کے لیے نیٹیو سپورٹ |
+| قابلیت پڑھنے کی | تعلیمی مقاصد کے لیے صاف کوڈ |
+| قابلیت تک رسائی | نئے روبوٹسٹس کے لیے کم رکاوٹ |
+
+پروڈکشن ہیومنوڈ روبوٹس کے لیے، کارکردگی کے اہم اجزاء اکثر C++ استعمال کرتے ہیں، لیکن پائی تھن سر فہرست برتاؤ، احساس پائپ لائنز، اور تحقیقی پروٹو ٹائپس کے لیے بہترین ہے۔
+
+## 3.2 اپنا پہلا نوڈ بنانا
+
+ہر ROS 2 نوڈ مسلسل سٹرکچر کو فالو کرتا ہے۔ یہاں کم از کم ٹیمپلیٹ ہے:
+
+```python
+import rclpy
+from rclpy.node import Node
+
+class MinimalNode(Node):
+    def __init__(self):
+        super().__init__('minimal_node')
+        self.get_logger().info('نوڈ شروع ہوا!')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MinimalNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+### کلیدی اجزاء
+
+- **`rclpy.init()`**: ROS 2 کلائنٹ لائبریری کو شروع کرتا ہے
+- **`Node` کلاس**: بیس کلاس جو ROS 2 فعالیت فراہم کرتی ہے
+- **`rclpy.spin()`**: نوڈ کو چلتا رکھتا ہے، کال بیکس کو پروسیس کرتا ہے
+- **`rclpy.shutdown()`**: وسائل کو صاف کرتا ہے
+
+:::tip نامزدگی کا رواج
+نوڈ ناموں کو نچلے کیس میں نیچے کے لکیر کے ساتھ ہونا چاہئے: `camera_driver`, `arm_controller`, `path_planner`.
+:::
+
+## 3.3 پبلشر نوڈ
+
+پبلشرز ٹاپکس کو ڈیٹا بھیجتے ہیں۔ یہ مثال ویلوسٹی کمانڈز کو پبلش کرتی ہے:
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+class VelocityPublisher(Node):
+    def __init__(self):
+        super().__init__('velocity_publisher')
+        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.timer = self.create_timer(0.1, self.publish_velocity)
+        self.get_logger().info('ویلوسٹی پبلشر شروع ہوا')
+
+    def publish_velocity(self):
+        msg = Twist()
+        msg.linear.x = 0.5  # 0.5 میٹر/سیکنڈ کے ساتھ آگے
+        msg.angular.z = 0.0  # کوئی گردش نہیں
+        self.publisher.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = VelocityPublisher()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### پبلشر اجزاء
+
+- **`create_publisher(msg_type, topic, qos)`**: پبلشر تخلیق کرتا ہے
+- **`create_timer(period, callback)`**: مسلسل پبلشنگ کو متحرک کرتا ہے
+- **`publish(msg)`**: ٹاپک کو میسج بھیجتا ہے
+
+QoS (کوالٹی آف سروس) پیرامیٹر `10` کیویو گہرائی سیٹ کرتا ہے—اگر سبسکرائیبرز سست ہیں تو کتنے میسجز کو بفر کرنا ہے۔
+
+## 3.4 سبسکرائیب نوڈ
+
+سبسکرائیبرز ٹاپکس سے ڈیٹا وصول کرتے ہیں۔ یہ مثال ویلوسٹی کمانڈز کو پروسیس کرتی ہے:
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+class VelocitySubscriber(Node):
+    def __init__(self):
+        super().__init__('velocity_subscriber')
+        self.subscription = self.create_subscription(
+            Twist, '/cmd_vel', self.velocity_callback, 10)
+        self.get_logger().info('ویلوسٹی سبسکرائیب شروع ہوا')
+
+    def velocity_callback(self, msg):
+        self.get_logger().info(
+            f'وصول شدہ: لینیئر={msg.linear.x:.2f}, اینگولر={msg.angular.z:.2f}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = VelocitySubscriber()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### کال بیک پیٹرن
+
+کال بیک فنکشن `velocity_callback` ہر بار چلتا ہے جب میسج آتا ہے۔ کال بیکس کو تیز رکھیں—بھاری پروسیسنگ کو الگ تھریڈس یا ٹائمرز پر آف لوڈ کرنا چاہئے۔
+
+## 3.5 سروس سرور
+
+سروسز سینکرونس درخواست-جواب کمیونیکیشن کو سنبھالتے ہیں:
+
+```python
+import rclpy
+from rclpy.node import Node
+from std_srvs.srv import SetBool
+
+class EmergencyStopService(Node):
+    def __init__(self):
+        super().__init__('emergency_stop_service')
+        self.srv = self.create_service(
+            SetBool, '/emergency_stop', self.handle_emergency)
+        self.stopped = False
+        self.get_logger().info('ایمرجنسی سٹاپ سروس تیار')
+
+    def handle_emergency(self, request, response):
+        self.stopped = request.data
+        response.success = True
+        response.message = 'روکا گیا' if self.stopped else 'چل رہا ہے'
+        self.get_logger().info(f'ایمرجنسی سٹاپ: {response.message}')
+        return response
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = EmergencyStopService()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### سروس انٹرفیس
+
+`SetBool` ایک معیاری سروس ٹائپ ہے جس میں:
+- **درخواست**: `bool data`
+- **جواب**: `bool success`, `string message`
+
+اپنی مرضی کے برتاؤ کے لیے، آپ اپنی مرضی کی سروس ٹائپس کو `.srv` فائلز میں وضاحت کر سکتے ہیں۔
+
+## 3.6 ایجنٹ پیٹرن - احساس سے ایکشن
+
+ایک روبوٹک **ایجنٹ** احساس، سوچ، اور ایکشن کو جوڑتا ہے۔ یہاں ایک سادہ ری ایکٹو ایجنٹ ہے:
+
+```python
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+
+class ObstacleAvoidanceAgent(Node):
+    def __init__(self):
+        super().__init__('obstacle_avoidance_agent')
+        # احساس: LIDAR کو سبسکرائیب کریں
+        self.scan_sub = self.create_subscription(
+            LaserScan, '/scan', self.perception_callback, 10)
+        # ایکشن: ویلوسٹی کمانڈز پبلش کریں
+        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.min_distance = float('inf')
+        self.get_logger().info('رکاوٹ سے بچاؤ ایجنٹ شروع ہوا')
+
+    def perception_callback(self, scan):
+        # احساس: کم از کم فاصلہ تلاش کریں
+        self.min_distance = min(scan.ranges)
+        # سوچ + ایکشن: رکاوٹوں کے رد عمل میں
+        cmd = Twist()
+        if self.min_distance < 0.5:
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.5  # دور گھومیں
+        else:
+            cmd.linear.x = 0.3
+            cmd.angular.z = 0.0  # آگے جائیں
+        self.cmd_pub.publish(cmd)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ObstacleAvoidanceAgent()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+یہ سادہ ایجنٹ احساس-ایکشن لوپ کو ظاہر کرتا ہے جو تمام روبوٹک برتاؤ کے تحت ہے۔ زیادہ ترقی یافتہ ایجنٹس سوچ اور ایکشن کے درمیان پلاننگ، اسٹیٹ مشینز، یا سیکھے ہوئے پالیسیز شامل کرتے ہیں۔
+
+## خلاصہ
+
+اس لیسنس نے پائی تھن کے ساتھ عملی ROS 2 پروگرامنگ کا تعارف کرایا:
+
+- **rclpy** ROS 2 کے لیے ایک پائی تھنک انٹرفیس فراہم کرتا ہے
+- **نوڈز** `Node` سے وراثت میں ملتے ہیں اور `rclpy.spin()` استعمال کرتے ہیں
+- **پبلشرز** `create_publisher()` اور `publish()` کا استعمال کرتے ہوئے ڈیٹا بھیجتے ہیں
+- **سبسکرائیبرز** `create_subscription()` سے کال بیکس کے ذریعے ڈیٹا وصول کرتے ہیں
+- **سروسز** `create_service()` کے ساتھ درخواست-جواب کو سنبھالتے ہیں
+- **ایجنٹس** ری ایکٹو کنٹرول لوپس میں احساس اور ایکشن کو جوڑتے ہیں
+
+اگلی لیسنس URDF کو متعارف کراتی ہے—روبوٹ فزکل سٹرکچر کی وضاحت کے لیے فارمیٹ، ہیومنوڈ روبوٹ سسٹم تعمیر کرنے کے لیے ہماری بنیاد کو مکمل کرتے ہوئے۔
+
+---
+
+## لیب مشقیں
+
+تصورات کو مشق کرنے کے لیے ان ہاتھ سے کام کرنے والی لیبز مکمل کریں:
+
+1. **[لیب 1: ہیلو ROS 2](/labs/module-01/lab-01-hello-ros2)** - اپنا پہلا نوڈ تخلیق کریں (60 منٹ)
+2. **[لیب 2: پبلشر-سبسکرائیب](/labs/module-01/lab-02-pubsub)** - ٹاپک کمیونیکیشن نافذ کریں (90 منٹ)
+3. **[لیب 3: سروسز](/labs/module-01/lab-03-services)** - درخواست-جواب کے نمونے تعمیر کریں (90 منٹ)
+
+---
+
+## حوالہ جات
+
+1. ROS 2 دستاویزات. (2024). *ایک سادہ پبلشر اور سبسکرائیب لکھنا (پائی تھن)*. https://docs.ros.org/en/humble/
+2. ROS 2 دستاویزات. (2024). *ایک سادہ سروس اور کلائنٹ لکھنا (پائی تھن)*. https://docs.ros.org/en/humble/
+3. میسنسکی، ایس.، وغیرہ. (2022). روبوٹ آپریٹنگ سسٹم 2: ڈیزائن، معماری، اور جنگل میں استعمال کے بارے میں. *سائنس روبوٹکس*, 7(66).

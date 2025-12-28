@@ -48,6 +48,28 @@ const config: Config = {
   ],
 
   plugins: [
+    // Add plugin to inject environment variables into the client bundle
+    async function myPlugin(context, options) {
+      return {
+        name: 'docusaurus-plugin-inject-env',
+        configureWebpack(config, isServer, utils) {
+          return {
+            resolve: {
+              alias: {
+                // Define process for browser compatibility
+                process: require.resolve('process/browser'),
+              },
+            },
+            plugins: [
+              // Define environment variables for the client
+              new (require('webpack')).DefinePlugin({
+                'process.env.REACT_APP_API_URL': JSON.stringify(process.env.REACT_APP_API_URL || 'https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com'),
+              }),
+            ],
+          };
+        },
+      };
+    },
   ],
 
   themeConfig: {
