@@ -29,11 +29,23 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
+# CORS Configuration - Allow specific origins for production
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+render_url = os.getenv("RENDER_EXTERNAL_URL", "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=[
+        frontend_url,
+        render_url,
+        "http://localhost:3000",  # Local development
+        "http://127.0.0.1:3000",  # Alternative local development
+        "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com",  # Production Render URL
+        "http://localhost:3001",  # Additional local development port
+        "http://127.0.0.1:3001",  # Alternative local development port
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -97,33 +109,41 @@ def get_password_hash(password):
             raise e
 
 async def get_user_by_email(email: str):
-    async with await get_db_connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(
-                "SELECT id, email, full_name, hashed_password FROM users WHERE email = %s",
-                (email,)
-            )
-            result = await cur.fetchone()
-            if result:
-                return {
-                    "id": result[0],
-                    "email": result[1],
-                    "full_name": result[2],
-                    "hashed_password": result[3]
-                }
+    try:
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT id, email, full_name, hashed_password FROM users WHERE email = %s",
+                    (email,)
+                )
+                result = await cur.fetchone()
+                if result:
+                    return {
+                        "id": result[0],
+                        "email": result[1],
+                        "full_name": result[2],
+                        "hashed_password": result[3]
+                    }
+    except Exception as e:
+        print(f"Error in get_user_by_email: {e}")
+        return None
     return None
 
 async def create_user(email: str, full_name: str, password: str):
-    hashed_password = get_password_hash(password)
-    user_id = str(uuid.uuid4())
-    async with await get_db_connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(
-                "INSERT INTO users (id, email, full_name, hashed_password) VALUES (%s, %s, %s, %s)",
-                (user_id, email, full_name, hashed_password)
-            )
-            await conn.commit()
-    return {"id": user_id, "email": email, "full_name": full_name}
+    try:
+        hashed_password = get_password_hash(password)
+        user_id = str(uuid.uuid4())
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "INSERT INTO users (id, email, full_name, hashed_password) VALUES (%s, %s, %s, %s)",
+                    (user_id, email, full_name, hashed_password)
+                )
+                await conn.commit()
+        return {"id": user_id, "email": email, "full_name": full_name}
+    except Exception as e:
+        print(f"Error in create_user: {e}")
+        raise e
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -136,10 +156,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 async def authenticate_user(email: str, password: str):
-    user = await get_user_by_email(email)
-    if not user or not verify_password(password, user["hashed_password"]):
+    try:
+        user = await get_user_by_email(email)
+        if not user or not verify_password(password, user["hashed_password"]):
+            return False
+        return user
+    except Exception as e:
+        print(f"Error in authenticate_user: {e}")
         return False
-    return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -163,7 +187,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 import hashlib
 
 async def get_db_connection():
-    return await psycopg.AsyncConnection.connect(NEON_DB_URL)
+    try:
+        return await psycopg.AsyncConnection.connect(NEON_DB_URL)
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        print(f"NEON_DB_URL: {NEON_DB_URL[:50]}..." if NEON_DB_URL else "NEON_DB_URL is not set")
+        raise e
 
 
 def get_content_hash(content: str) -> str:
@@ -268,6 +297,7 @@ async def root():
         "message": "Welcome to the Physical AI Humanoid Robotics Textbook RAG Chatbot API",
         "version": "1.0.0",
         "endpoints": {
+            "GET /health": "Health check with database connectivity",
             "POST /register": "User registration",
             "POST /token": "User login and token generation",
             "GET /users/me": "Get current user info (requires authentication)",
@@ -278,12 +308,41 @@ async def root():
         "description": "This API provides access to a RAG chatbot for the Physical AI Humanoid Robotics Textbook, with authentication, translation capabilities, and chat functionality."
     }
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint that also tests database connectivity"""
+    try:
+        # Test database connection
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT 1")
+                result = await cur.fetchone()
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "message": "API is running and database is accessible"
+        }
+    except Exception as e:
+        print(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e),
+            "message": "API is running but database connection failed"
+        }, 503
+
 
 @app.on_event("startup")
 async def startup_event():
-    await create_chat_history_table()
-    await create_auth_tables()
-    await create_translation_cache_table()
+    try:
+        await create_chat_history_table()
+        await create_auth_tables()
+        await create_translation_cache_table()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        # Don't raise the exception to avoid crashing the server, but log it
 
 # --- Chat Request Model ---
 class ChatRequest(BaseModel):
@@ -293,42 +352,62 @@ class ChatRequest(BaseModel):
 # --- Authentication Endpoints ---
 @app.post("/register", response_model=Token)
 async def register(user: UserCreate):
-    # Check if user already exists
-    existing_user = await get_user_by_email(user.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered"
+    try:
+        # Check if user already exists
+        existing_user = await get_user_by_email(user.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+
+        # Create new user
+        db_user = await create_user(user.email, user.full_name, user.password)
+
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": db_user["email"]}, expires_delta=access_token_expires
         )
 
-    # Create new user
-    db_user = await create_user(user.email, user.full_name, user.password)
-
-    # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": db_user["email"]}, expires_delta=access_token_expires
-    )
-
-    return {"access_token": access_token, "token_type": "bearer"}
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 400)
+        raise
+    except Exception as e:
+        print(f"Error in /register endpoint: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error during registration"
+        )
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(username: str = Form(...), password: str = Form(...)):
-    # The frontend sends 'username' but it's actually the email
-    user_data = await authenticate_user(username, password)
-    if not user_data:
-        raise HTTPException(
-            status_code=401,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        # The frontend sends 'username' but it's actually the email
+        user_data = await authenticate_user(username, password)
+        if not user_data:
+            raise HTTPException(
+                status_code=401,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user_data["email"]}, expires_delta=access_token_expires
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_data["email"]}, expires_delta=access_token_expires
-    )
-
-    return {"access_token": access_token, "token_type": "bearer"}
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401)
+        raise
+    except Exception as e:
+        print(f"Error in /token endpoint: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error during authentication"
+        )
 
 @app.get("/users/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):
