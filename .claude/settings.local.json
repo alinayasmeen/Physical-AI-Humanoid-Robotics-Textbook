@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(dir \"D:\\Hackathon_Q4\\Physical-AI-Humanoid-Robotics-Textbook\\Physical-AI-Humanoid-Robotics-Textbook\\my-textbook-site\\i18n\\ur\\docusaurus-plugin-content-docs\\current\" /s)",
-      "Bash(find . -name \"*.md\" -exec grep -l \"TranslateToUrdu\" {} ;)"
+      "Bash(find . -name \"*.md\" -exec grep -l \"TranslateToUrdu\" {} ;)",
+      "Bash(npm run build)"
     ]
   }
 }
