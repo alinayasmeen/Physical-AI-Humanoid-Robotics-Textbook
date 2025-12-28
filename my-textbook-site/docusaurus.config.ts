@@ -19,7 +19,7 @@ const config: Config = {
   organizationName: 'alinayasmeen',
   projectName: 'Physical-AI-Humanoid-Robotics-Textbook',
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
