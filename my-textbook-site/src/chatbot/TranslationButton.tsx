@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './styles.module.css';
+import API_BASE_URL from '../config/apiConfig';
 
 interface TranslationButtonProps {
   content?: string; // Optional content to translate, if not provided, will translate current page
@@ -58,7 +59,7 @@ const TranslationButton: React.FC<TranslationButtonProps> = ({
       }
 
       // Call the backend translation API
-      const response = await fetch('http://localhost:8000/translate-markdown', {
+      const response = await fetch(`${API_BASE_URL}/translate-markdown`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
