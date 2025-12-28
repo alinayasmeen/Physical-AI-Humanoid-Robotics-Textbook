@@ -48,12 +48,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
         setIsAuthenticated(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user info:', error);
-      // Network error - keep token, just mark as not authenticated
-      // This prevents clearing the token just because the backend is temporarily down
-      setUser(null);
-      setIsAuthenticated(false);
+      // Check if it's a CORS error or network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // Network error - keep token, just mark as not authenticated
+        // This prevents clearing the token just because of CORS issues
+        setUser(null);
+        setIsAuthenticated(false);
+      } else {
+        // Other network error - keep token, just mark as not authenticated
+        setUser(null);
+        setIsAuthenticated(false);
+      }
     }
   };
 
@@ -82,8 +89,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const errorData = await response.json();
         return { success: false, error: errorData.detail || 'Login failed' };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      // Check if it's a CORS error or network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        return {
+          success: false,
+          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue.'
+        };
+      }
       return { success: false, error: 'Network error' };
     }
   };
@@ -114,8 +128,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const errorData = await response.json();
         return { success: false, error: errorData.detail || 'Registration failed' };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
+      // Check if it's a CORS error or network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        return {
+          success: false,
+          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue.'
+        };
+      }
       return { success: false, error: 'Network error' };
     }
   };
