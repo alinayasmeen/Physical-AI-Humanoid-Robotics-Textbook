@@ -32,18 +32,31 @@ app = FastAPI()
 # CORS Configuration - Allow specific origins for production
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 render_url = os.getenv("RENDER_EXTERNAL_URL", "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com")
+vercel_url = os.getenv("VERCEL_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")  # Default Vercel URL
+
+# Build allowed origins list
+allowed_origins = [
+    frontend_url,
+    render_url,
+    vercel_url,  # Vercel frontend
+    "http://localhost:3000",  # Local development
+    "http://127.0.0.1:3000",  # Alternative local development
+    "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com",  # Production Render URL
+    "http://localhost:3001",  # Additional local development port
+    "http://127.0.0.1:3001",  # Alternative local development port
+]
+
+# Add any additional origins from environment variable (comma-separated)
+additional_origins = os.getenv("ADDITIONAL_CORS_ORIGINS", "")
+if additional_origins:
+    for origin in additional_origins.split(","):
+        origin = origin.strip()
+        if origin:
+            allowed_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        frontend_url,
-        render_url,
-        "http://localhost:3000",  # Local development
-        "http://127.0.0.1:3000",  # Alternative local development
-        "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com",  # Production Render URL
-        "http://localhost:3001",  # Additional local development port
-        "http://127.0.0.1:3001",  # Alternative local development port
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
