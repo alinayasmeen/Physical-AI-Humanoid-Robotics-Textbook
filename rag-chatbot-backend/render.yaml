@@ -13,3 +13,11 @@ services:
         sync: false
       - key: NEON_DATABASE_URL
         sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: RENDER_EXTERNAL_URL
+        sync: false
+      - key: VERCEL_URL
+        sync: false
+      - key: ADDITIONAL_CORS_ORIGINS
+        sync: false
