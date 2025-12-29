@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUserInfo = async (token: string) => {
     try {
+      console.log('Fetching user info from:', `${API_BASE_URL}/users/me`);
       const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -39,7 +40,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (response.ok) {
-        const userData = await response.json();
+        let userData;
+        try {
+          userData = await response.json();
+        } catch (e) {
+          // If response is not JSON, handle gracefully
+          console.error('Failed to parse user data as JSON:', e);
+          userData = { id: null, email: 'unknown', full_name: 'Unknown User' };
+        }
         setUser(userData);
         setIsAuthenticated(true);
       } else {
@@ -50,8 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Error fetching user info:', error);
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       // Check if it's a CORS error or network error
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
         // Network error - keep token, just mark as not authenticated
         // This prevents clearing the token just because of CORS issues
         setUser(null);
@@ -66,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login to:', `${API_BASE_URL}/token`);
       const response = await fetch(`${API_BASE_URL}/token`, {
         method: 'POST',
         headers: {
@@ -86,24 +100,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         return { success: true };
       } else {
-        const errorData = await response.json();
+        // Try to parse error response, but handle if it's not JSON
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+        }
         return { success: false, error: errorData.detail || 'Login failed' };
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       // Check if it's a CORS error or network error
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
         return {
           success: false,
-          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue.'
+          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue. Ensure the backend is properly configured to allow requests from ' + window.location.origin
         };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Network error: ' + error.message };
     }
   };
 
   const register = async (email: string, password: string, fullName: string) => {
     try {
+      console.log('Attempting registration to:', `${API_BASE_URL}/register`);
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
@@ -125,19 +152,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         return { success: true };
       } else {
-        const errorData = await response.json();
+        // Try to parse error response, but handle if it's not JSON
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+        }
         return { success: false, error: errorData.detail || 'Registration failed' };
       }
     } catch (error: any) {
       console.error('Registration error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       // Check if it's a CORS error or network error
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
         return {
           success: false,
-          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue.'
+          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue. Ensure the backend is properly configured to allow requests from ' + window.location.origin
         };
       }
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Network error: ' + error.message };
     }
   };
 
