@@ -60,20 +60,33 @@ app = FastAPI()
 # --------------------------------------------------
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-render_url = os.getenv("RENDER_EXTERNAL_URL")
-vercel_url = os.getenv("VERCEL_URL")
+render_url = os.getenv("RENDER_EXTERNAL_URL", "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com")
+vercel_url = os.getenv("VERCEL_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")  # Default Vercel URL
 
+# Build allowed origins list
 allowed_origins = [
     frontend_url,
     render_url,
-    vercel_url,
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    vercel_url,  # Vercel frontend
+    "http://localhost:3000",  # Local development
+    "http://127.0.0.1:3000",  # Alternative local development
+    "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com",  # Production Render URL
+    "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",  # Production Vercel URL
+    "http://localhost:3001",  # Additional local development port
+    "http://127.0.0.1:3001",  # Alternative local development port
 ]
+
+# Add any additional origins from environment variable (comma-separated)
+additional_origins = os.getenv("ADDITIONAL_CORS_ORIGINS", "")
+if additional_origins:
+    for origin in additional_origins.split(","):
+        origin = origin.strip()
+        if origin:
+            allowed_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o for o in allowed_origins if o],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -203,10 +216,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # STARTUP
 # --------------------------------------------------
 
-@app.on_event("startup")
-async def startup_event():
+async def create_auth_tables():
     async with await get_db_connection() as conn:
         async with conn.cursor() as cur:
+            # Create users table
             await cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id VARCHAR(36) PRIMARY KEY,
@@ -216,11 +229,122 @@ async def startup_event():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            # Update chat_history table to include user_id
+            try:
+                # Add user_id column if it doesn't exist
+                await cur.execute("""
+                    ALTER TABLE chat_history ADD COLUMN user_id VARCHAR(36);
+                """)
+            except Exception:
+                # Column might already exist, continue
+                pass
             await conn.commit()
+
+        # Add foreign key constraint separately to avoid circular dependency
+        try:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    ALTER TABLE chat_history
+                    ADD CONSTRAINT fk_chat_history_user_id
+                    FOREIGN KEY (user_id) REFERENCES users(id);
+                """)
+        except Exception as e:
+            # Foreign key might already exist or users table not ready, continue
+            print(f"Could not create foreign key constraint: {e}")
+            pass
+
+async def create_translation_cache_table():
+    async with await get_db_connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS translation_cache (
+                    id SERIAL PRIMARY KEY,
+                    original_content_hash VARCHAR(64) UNIQUE NOT NULL,
+                    original_content TEXT NOT NULL,
+                    translated_content TEXT NOT NULL,
+                    target_language VARCHAR(10) DEFAULT 'ur',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            # Create index for faster lookups by hash
+            await cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_translation_cache_hash
+                ON translation_cache(original_content_hash);
+            """)
+            await conn.commit()
+
+async def create_chat_history_table():
+    async with await get_db_connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id SERIAL PRIMARY KEY,
+                    query TEXT NOT NULL,
+                    response TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_id VARCHAR(36)
+                );
+            """)
+            await conn.commit()
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        # Create users table first (no dependencies)
+        await create_auth_tables()
+        # Then create other tables that might reference users
+        await create_chat_history_table()
+        await create_translation_cache_table()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        # Don't raise the exception to avoid crashing the server, but log it
 
 # --------------------------------------------------
 # ROUTES
 # --------------------------------------------------
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the Physical AI Humanoid Robotics Textbook RAG Chatbot API",
+        "version": "1.0.0",
+        "endpoints": {
+            "GET /health": "Health check with database connectivity",
+            "POST /register": "User registration",
+            "POST /token": "User login and token generation",
+            "GET /users/me": "Get current user info (requires authentication)",
+            "POST /chat": "Chat with the RAG system (requires authentication)",
+            "POST /translate": "Translate text (requires authentication)",
+            "POST /translate-markdown": "Translate markdown content (requires authentication)",
+        },
+        "description": "This API provides access to a RAG chatbot for the Physical AI Humanoid Robotics Textbook, with authentication, translation capabilities, and chat functionality."
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint that also tests database connectivity"""
+    try:
+        # Test database connection
+        async with await get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT 1")
+                result = await cur.fetchone()
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "message": "API is running and database is accessible"
+        }
+    except Exception as e:
+        print(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e),
+            "message": "API is running but database connection failed"
+        }
 
 @app.post("/register", response_model=Token)
 async def register(user: UserCreate):
@@ -249,3 +373,68 @@ async def login(username: str = Form(...), password: str = Form(...)):
 @app.get("/users/me")
 async def users_me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+# --- Chat Endpoint ---
+@app.post("/chat")
+async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_current_user)):
+    # Import the new gemini agents module only when needed to avoid startup issues
+    from gemini_agents import process_user_query
+
+    # Get context - either from selected text or let the agent handle RAG
+    context = chat_request.selected_text  # This will be None if no selected text
+
+    # Get the user ID from email
+    user = await get_user_by_email(current_user["email"])
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    user_id = user["id"]
+
+    # Process the query using the new Gemini agent integration
+    try:
+        result = await process_user_query(user_id, chat_request.query, context)
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+# --- Translation Request Models ---
+class TranslateTextRequest(BaseModel):
+    text: str
+    target_language: str = "ur"
+
+class TranslateMarkdownRequest(BaseModel):
+    markdown_content: str
+    target_language: str = "ur"
+
+# --- Translation Endpoints ---
+@app.post("/translate")
+async def translate_text(request: TranslateTextRequest, current_user: dict = Depends(get_current_user)):
+    """Translate text to the specified language (default: Urdu)"""
+    try:
+        # Check which translation service to use based on environment variables
+        if os.getenv("QWEN_API_KEY"):
+            from qwen_translation_service import qwen_translation_service
+            translation_service = qwen_translation_service
+        else:
+            from translation_service import translation_service
+
+        translated_text = await translation_service.translate_text(request.text, request.target_language)
+        return {"original_text": request.text, "translated_text": translated_text, "target_language": request.target_language}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+@app.post("/translate-markdown")
+async def translate_markdown(request: TranslateMarkdownRequest, current_user: dict = Depends(get_current_user)):
+    """Translate markdown content while preserving structure"""
+    try:
+        # Check which translation service to use based on environment variables
+        if os.getenv("QWEN_API_KEY"):
+            from qwen_translation_service import qwen_translation_service
+            translation_service = qwen_translation_service
+        else:
+            from translation_service import translation_service
+
+        translated_content = await translation_service.translate_markdown_content(request.markdown_content)
+        return {"original_content": request.markdown_content, "translated_content": translated_content, "target_language": request.target_language}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Markdown translation failed: {str(e)}")
