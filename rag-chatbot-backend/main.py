@@ -278,12 +278,25 @@ async def create_auth_tables():
             try:
                 # Add user_id column if it doesn't exist
                 await cur.execute("""
-                    ALTER TABLE chat_history ADD COLUMN user_id VARCHAR(36) REFERENCES users(id);
+                    ALTER TABLE chat_history ADD COLUMN user_id VARCHAR(36);
                 """)
             except psycopg.Error:
                 # Column might already exist, continue
                 pass
             await conn.commit()
+
+        # Add foreign key constraint separately to avoid circular dependency
+        try:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    ALTER TABLE chat_history
+                    ADD CONSTRAINT fk_chat_history_user_id
+                    FOREIGN KEY (user_id) REFERENCES users(id);
+                """)
+        except psycopg.Error as e:
+            # Foreign key might already exist or users table not ready, continue
+            print(f"Could not create foreign key constraint: {e}")
+            pass
 
 async def create_translation_cache_table():
     async with await get_db_connection() as conn:
@@ -316,7 +329,7 @@ async def create_chat_history_table():
                     query TEXT NOT NULL,
                     response TEXT NOT NULL,
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    user_id VARCHAR(36) REFERENCES users(id)
+                    user_id VARCHAR(36)
                 );
             """)
             await conn.commit()
@@ -366,8 +379,10 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     try:
-        await create_chat_history_table()
+        # Create users table first (no dependencies)
         await create_auth_tables()
+        # Then create other tables that might reference users
+        await create_chat_history_table()
         await create_translation_cache_table()
         print("Database tables created successfully")
     except Exception as e:
