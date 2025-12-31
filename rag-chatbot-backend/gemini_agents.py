@@ -17,26 +17,32 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 COLLECTION_NAME = "textbook_collection"
 
-# Check if the API key is set; if not, raise an error
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it before running the script.")
+# Note: Environment variables are checked at function call time, not import time
+# to avoid crashing the server when they're not set
 
 # Initialize clients
 def get_gemini_client():
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it before running the script.")
     return OpenAI(
         api_key=GEMINI_API_KEY,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     )
 
 def get_qdrant_client():
+    if not QDRANT_URL or not QDRANT_API_KEY:
+        raise ValueError("QDRANT_URL and QDRANT_API_KEY environment variables must be set.")
     return QdrantClient(
         url=QDRANT_URL,
         api_key=QDRANT_API_KEY,
     )
 
-embedding_model = TextEmbedding()
+def get_embedding_model():
+    return TextEmbedding()
 
 async def get_db_connection():
+    if not NEON_DB_URL:
+        raise ValueError("NEON_DATABASE_URL environment variable must be set.")
     return await psycopg.AsyncConnection.connect(NEON_DB_URL)
 
 async def save_chat_history(user_id: str, query: str, response: str):
@@ -69,6 +75,7 @@ async def get_user_by_id(user_id: str):
 async def retrieve_context(query: str):
     """Retrieve context from Qdrant database using embeddings"""
     try:
+        embedding_model = get_embedding_model()
         query_embedding = list(embedding_model.embed([query]))[0]  # Convert generator to list and get first element
         qdrant_client = get_qdrant_client()
 
