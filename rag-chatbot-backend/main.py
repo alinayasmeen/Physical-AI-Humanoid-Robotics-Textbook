@@ -377,24 +377,26 @@ async def users_me(current_user: dict = Depends(get_current_user)):
 # --- Chat Endpoint ---
 @app.post("/chat")
 async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_current_user)):
-    # Import the new gemini agents module only when needed to avoid startup issues
-    from gemini_agents import process_user_query
-
-    # Get context - either from selected text or let the agent handle RAG
-    context = chat_request.selected_text  # This will be None if no selected text
-
-    # Get the user ID from email
-    user = await get_user_by_email(current_user["email"])
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    user_id = user["id"]
-
-    # Process the query using the new Gemini agent integration
     try:
+        # Import the new gemini agents module only when needed to avoid startup issues
+        from gemini_agents import process_user_query
+
+        # Get context - either from selected text or let the agent handle RAG
+        context = chat_request.selected_text  # This will be None if no selected text
+
+        # Get the user ID from email
+        user = await get_user_by_email(current_user["email"])
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        user_id = user["id"]
+
+        # Process the query using the new Gemini agent integration
         result = await process_user_query(user_id, chat_request.query, context)
         return result
+    except ImportError as e:
+        return {"error": f"Chat functionality not available: {str(e)}"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Chat processing failed: {str(e)}"}
 
 # --- Translation Request Models ---
 class TranslateTextRequest(BaseModel):
