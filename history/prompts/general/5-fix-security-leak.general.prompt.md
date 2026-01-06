@@ -24,7 +24,6 @@ tests:
 ## Prompt
 
 Google API Key
-AIzaSyCTmQfzOawf4tSTHmiiFGmdpqcaGNF7Gvo
 Public leak
 #1 opened14 days ago
 • Detected secret in rag-chatbot-backend/render.yaml:1
@@ -32,7 +31,7 @@ Public leak
 ## Response snapshot
 
 Security vulnerability identified and fixed. The render.yaml file contained multiple exposed secrets including:
-1. Google API key: AIzaSyCTmQfzOawf4tSTHmiiFGmdpqcaGNF7Gvo
+1. Google API key:
 2. Qdrant URL with credentials
 3. JWT token
 4. PostgreSQL connection string with credentials
