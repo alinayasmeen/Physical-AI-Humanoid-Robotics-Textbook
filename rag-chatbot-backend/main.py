@@ -59,18 +59,16 @@ app = FastAPI()
 # CORS
 # --------------------------------------------------
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-vercel_url = os.getenv("VERCEL_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")  # Default Vercel URL
+# Get origins from environment variables for flexibility
+frontend_url = os.getenv("FRONTEND_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")
+vercel_url = os.getenv("VERCEL_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")
 
 # Build allowed origins list
 allowed_origins = [
     frontend_url,
-    vercel_url,  # Vercel frontend
+    vercel_url,
     "http://localhost:3000",  # Local development
-    "http://127.0.0.1:3000",  # Alternative local development
-    "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",  # Production Vercel URL
-    "http://localhost:3001",  # Additional local development port
-    "http://127.0.0.1:3001",  # Alternative local development port
+    "http://localhost:5173",  # Vite dev server (if using)
 ]
 
 # Add any additional origins from environment variable (comma-separated)
@@ -83,15 +81,14 @@ if additional_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Add exposed headers for client-side access
+    expose_headers=["Access-Control-Allow-Origin", "Content-Type", "Content-Disposition"]
 )
+
 
 # --------------------------------------------------
 # QDRANT
@@ -378,6 +375,16 @@ async def users_me(current_user: dict = Depends(get_current_user)):
 # --- Chat Endpoint ---
 @app.post("/chat")
 async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_current_user)):
+    from fastapi.responses import JSONResponse
+
+    # Prepare CORS headers to be added to the response
+    cors_headers = {
+        "Access-Control-Allow-Origin": "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+    }
+
     try:
         # Import the new gemini agents module only when needed to avoid startup issues
         from gemini_agents import process_user_query
@@ -393,11 +400,20 @@ async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_curre
 
         # Process the query using the new Gemini agent integration
         result = await process_user_query(user_id, chat_request.query, context)
-        return {"response": result.get("response", result) }
+
+        # Return response with explicit CORS headers
+        response_data = {"response": result.get("response", result)}
+        return JSONResponse(content=response_data, headers=cors_headers)
     except ImportError as e:
-        return {"error": f"Chat functionality not available: {str(e)}"}
+        return JSONResponse(
+            content={"error": f"Chat functionality not available: {str(e)}"},
+            headers=cors_headers
+        )
     except Exception as e:
-        return {"error": f"Chat processing failed: {str(e)}"}
+        return JSONResponse(
+            content={"error": f"Chat processing failed: {str(e)}"},
+            headers=cors_headers
+        )
 
 # --- Translation Request Models ---
 class TranslateTextRequest(BaseModel):
