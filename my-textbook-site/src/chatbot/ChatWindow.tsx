@@ -56,6 +56,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
       // Get token from localStorage
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No auth token found");
+      }
 
       const response = await fetch('https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com/chat', {
         method: 'POST',

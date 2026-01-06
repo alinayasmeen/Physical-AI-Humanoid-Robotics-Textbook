@@ -52,7 +52,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # FASTAPI APP
 # --------------------------------------------------
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 app = FastAPI()
 
 # --------------------------------------------------
@@ -60,17 +60,14 @@ app = FastAPI()
 # --------------------------------------------------
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-render_url = os.getenv("RENDER_EXTERNAL_URL", "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com")
 vercel_url = os.getenv("VERCEL_URL", "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app")  # Default Vercel URL
 
 # Build allowed origins list
 allowed_origins = [
     frontend_url,
-    render_url,
     vercel_url,  # Vercel frontend
     "http://localhost:3000",  # Local development
     "http://127.0.0.1:3000",  # Alternative local development
-    "https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com",  # Production Render URL
     "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",  # Production Vercel URL
     "http://localhost:3001",  # Additional local development port
     "http://127.0.0.1:3001",  # Alternative local development port
@@ -86,7 +83,11 @@ if additional_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=[
+        "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -392,7 +393,7 @@ async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_curre
 
         # Process the query using the new Gemini agent integration
         result = await process_user_query(user_id, chat_request.query, context)
-        return result
+        return {"response": result.get("response", result) }
     except ImportError as e:
         return {"error": f"Chat functionality not available: {str(e)}"}
     except Exception as e:
