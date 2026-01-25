@@ -9,6 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -16,18 +17,19 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const [token, setToken] = useState<string | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in on component mount
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Verify token and get user info
-      fetchUserInfo(token);
-    }
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+    setToken(storedToken);
+    fetchUserInfo(storedToken);
+  }
+
   }, []);
 
   const fetchUserInfo = async (token: string) => {
@@ -94,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.access_token);
-
+        setToken(data.access_token);
         // Fetch user info after successful login
         await fetchUserInfo(data.access_token);
 
@@ -146,7 +148,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.access_token);
-
+        setToken(data.access_token);
         // Fetch user info after successful registration
         await fetchUserInfo(data.access_token);
 
@@ -182,12 +184,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     localStorage.removeItem('token');
+    setToken(null);
     setUser(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
