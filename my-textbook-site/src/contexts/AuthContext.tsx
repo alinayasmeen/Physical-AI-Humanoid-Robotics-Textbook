@@ -1,5 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import API_BASE_URL from '../config/apiConfig';
+import useIsBrowser from '@docusaurus/useIsBrowser';
 
 interface User {
   id: string;
@@ -10,134 +17,97 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const [token, setToken] = useState<string | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const isBrowser = useIsBrowser();
+
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    if (!isBrowser) return;
+
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
-    setToken(storedToken);
-    fetchUserInfo(storedToken);
-  }
-
-  }, []);
+      setToken(storedToken);
+      fetchUserInfo(storedToken);
+    }
+  }, [isBrowser]);
 
   const fetchUserInfo = async (token: string) => {
     try {
-      console.log('Fetching user info from:', `${API_BASE_URL}/users/me`);
       const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      if (response.ok) {
-        let userData;
-        try {
-          userData = await response.json();
-        } catch (e) {
-          // If response is not JSON, handle gracefully
-          console.error('Failed to parse user data as JSON:', e);
-          userData = { id: null, email: 'unknown', full_name: 'Unknown User' };
-        }
-        setUser(userData);
-        setIsAuthenticated(true);
-      } else {
-        // Token might be invalid, clear it
-        localStorage.removeItem('token');
-        setUser(null);
-        setIsAuthenticated(false);
+      if (!response.ok) {
+        throw new Error('Invalid token');
       }
-    } catch (error: any) {
-      console.error('Error fetching user info:', error);
-      console.error('Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-      // Check if it's a CORS error or network error
-      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
-        // Network error - keep token, just mark as not authenticated
-        // This prevents clearing the token just because of CORS issues
-        setUser(null);
-        setIsAuthenticated(false);
-      } else {
-        // Other network error - keep token, just mark as not authenticated
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+
+      const userData = await response.json();
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      console.log('Attempting login to:', `${API_BASE_URL}/token`);
       const response = await fetch(`${API_BASE_URL}/token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           username: email,
-          password: password,
+          password,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.access_token);
-        setToken(data.access_token);
-        // Fetch user info after successful login
-        await fetchUserInfo(data.access_token);
+      if (!response.ok) {
+        const err = await response.json();
+        return { success: false, error: err.detail || 'Login failed' };
+      }
 
-        return { success: true };
-      } else {
-        // Try to parse error response, but handle if it's not JSON
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        return { success: false, error: errorData.detail || 'Login failed' };
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-      // Check if it's a CORS error or network error
-      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
-        return {
-          success: false,
-          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue. Ensure the backend is properly configured to allow requests from ' + window.location.origin
-        };
-      }
-      return { success: false, error: 'Network error: ' + error.message };
+      const data = await response.json();
+      localStorage.setItem('token', data.access_token);
+      setToken(data.access_token);
+      await fetchUserInfo(data.access_token);
+
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
     }
   };
 
-  const register = async (email: string, password: string, fullName: string) => {
+  const register = async (
+    email: string,
+    password: string,
+    fullName: string
+  ) => {
     try {
-      console.log('Attempting registration to:', `${API_BASE_URL}/register`);
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           password,
@@ -145,40 +115,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.access_token);
-        setToken(data.access_token);
-        // Fetch user info after successful registration
-        await fetchUserInfo(data.access_token);
+      if (!response.ok) {
+        const err = await response.json();
+        return { success: false, error: err.detail || 'Registration failed' };
+      }
 
-        return { success: true };
-      } else {
-        // Try to parse error response, but handle if it's not JSON
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        return { success: false, error: errorData.detail || 'Registration failed' };
-      }
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-      // Check if it's a CORS error or network error
-      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('CORS'))) {
-        return {
-          success: false,
-          error: 'Network error - please check your connection or contact the administrator. This might be a CORS configuration issue. Ensure the backend is properly configured to allow requests from ' + window.location.origin
-        };
-      }
-      return { success: false, error: 'Network error: ' + error.message };
+      const data = await response.json();
+      localStorage.setItem('token', data.access_token);
+      setToken(data.access_token);
+      await fetchUserInfo(data.access_token);
+
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
     }
   };
 
@@ -190,7 +139,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isAuthenticated }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        register,
+        logout,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -198,8 +156,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 };

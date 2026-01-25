@@ -1,7 +1,5 @@
 import os
-import requests
 import uuid
-import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -23,81 +21,48 @@ load_dotenv()
 # JWT CONFIG
 # --------------------------------------------------
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "axo7GSAqFOOJ7kOOYU63a0FQtHyMNTc-Q_QqGEdPlWQHcvFdPvd5pTvucpY5j6m69t1LAMxsDDWCunQVCjYbMg",
-)
+SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_ME_IN_PRODUCTION")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # --------------------------------------------------
-# PASSWORD HASHING (SAFE)
+# PASSWORD HASHING (SAFE & STANDARD)
 # --------------------------------------------------
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def _prehash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(_prehash_password(password))
+    return pwd_context.hash(password)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(
-        _prehash_password(plain_password),
-        hashed_password
-    )
+    return pwd_context.verify(plain_password, hashed_password)
+
 
 # --------------------------------------------------
-# FASTAPI APP - CRITICAL: Initialize BEFORE adding middleware
+# FASTAPI APP
 # --------------------------------------------------
 
 app = FastAPI()
 
 # --------------------------------------------------
-# CORS - FIXED VERSION
+# CORS (FINAL, CORRECT)
 # --------------------------------------------------
 
-# CRITICAL FIX 1: Exact Vercel URL (no trailing slash)
-VERCEL_URL = "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app"
-
-# Build allowed origins list
-allowed_origins = [
-    VERCEL_URL,  # Production
-    "http://localhost:3000",  # Local development
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:5174",  # Alternative Vite port
-]
-
-# CRITICAL FIX 2: Add wildcard for Vercel preview deployments
-# This handles preview URLs like: https://physical-ai-humanoid-robotics-textb-*.vercel.app
-allowed_origins.append("https://*.vercel.app")
-
-# Add environment variable origins if specified
-additional_origins = os.getenv("ADDITIONAL_CORS_ORIGINS", "")
-if additional_origins:
-    for origin in additional_origins.split(","):
-        origin = origin.strip()
-        if origin:
-            allowed_origins.append(origin)
-
-# CRITICAL FIX 3: Add middleware IMMEDIATELY after FastAPI() initialization
-# BEFORE any routes or other code
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "https://physical-ai-humanoid-robotics-textb-fawn.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# CRITICAL FIX 4: Add explicit OPTIONS handler for preflight requests
-@app.options("/{path:path}")
-async def options_handler():
-    """Handle CORS preflight requests explicitly"""
-    return {
-        "message": "OK",
-        "cors": "enabled"
-    }
 
 # --------------------------------------------------
 # OAUTH
@@ -122,6 +87,7 @@ COLLECTION_NAME = "textbook_collection"
 
 NEON_DB_URL = os.getenv("NEON_DATABASE_URL")
 
+
 async def get_db_connection():
     if not NEON_DB_URL:
         raise RuntimeError("Database URL not configured")
@@ -136,20 +102,21 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
 
 class ChatRequest(BaseModel):
     query: str
     selected_text: Optional[str] = None
 
+
 class TranslateTextRequest(BaseModel):
     text: str
     target_language: str = "ur"
+
 
 class TranslateMarkdownRequest(BaseModel):
     markdown_content: str
@@ -176,6 +143,7 @@ async def get_user_by_email(email: str):
                 }
     return None
 
+
 async def create_user(email: str, full_name: str, password: str):
     user_id = str(uuid.uuid4())
     hashed_password = get_password_hash(password)
@@ -193,12 +161,11 @@ async def create_user(email: str, full_name: str, password: str):
 
     return {"id": user_id, "email": email, "full_name": full_name}
 
+
 async def authenticate_user(email: str, password: str):
     user = await get_user_by_email(email)
-    if not user:
-        return False
-    if not verify_password(password, user["hashed_password"]):
-        return False
+    if not user or not verify_password(password, user["hashed_password"]):
+        return None
     return user
 
 # --------------------------------------------------
@@ -207,9 +174,12 @@ async def authenticate_user(email: str, password: str):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
@@ -229,7 +199,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # STARTUP
 # --------------------------------------------------
 
-async def create_auth_tables():
+@app.on_event("startup")
+async def startup():
     async with await get_db_connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
@@ -241,48 +212,6 @@ async def create_auth_tables():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            try:
-                await cur.execute("""
-                    ALTER TABLE chat_history ADD COLUMN user_id VARCHAR(36);
-                """)
-            except Exception:
-                pass
-            await conn.commit()
-
-        try:
-            async with conn.cursor() as cur:
-                await cur.execute("""
-                    ALTER TABLE chat_history
-                    ADD CONSTRAINT fk_chat_history_user_id
-                    FOREIGN KEY (user_id) REFERENCES users(id);
-                """)
-        except Exception as e:
-            print(f"Could not create foreign key constraint: {e}")
-            pass
-
-async def create_translation_cache_table():
-    async with await get_db_connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute("""
-                CREATE TABLE IF NOT EXISTS translation_cache (
-                    id SERIAL PRIMARY KEY,
-                    original_content_hash VARCHAR(64) UNIQUE NOT NULL,
-                    original_content TEXT NOT NULL,
-                    translated_content TEXT NOT NULL,
-                    target_language VARCHAR(10) DEFAULT 'ur',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            await cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_translation_cache_hash
-                ON translation_cache(original_content_hash);
-            """)
-            await conn.commit()
-
-async def create_chat_history_table():
-    async with await get_db_connection() as conn:
-        async with conn.cursor() as cur:
             await cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_history (
                     id SERIAL PRIMARY KEY,
@@ -294,62 +223,25 @@ async def create_chat_history_table():
             """)
             await conn.commit()
 
-@app.on_event("startup")
-async def startup_event():
-    try:
-        await create_auth_tables()
-        await create_chat_history_table()
-        await create_translation_cache_table()
-        print("✅ Database tables created successfully")
-        print(f"✅ CORS enabled for: {allowed_origins}")
-    except Exception as e:
-        print(f"❌ Error during startup: {e}")
-
 # --------------------------------------------------
-# ROUTES - CRITICAL FIX: No trailing slashes!
+# ROUTES
 # --------------------------------------------------
 
 @app.get("/")
 async def root():
-    return {
-        "message": "Welcome to the Physical AI Humanoid Robotics Textbook RAG Chatbot API",
-        "version": "1.0.0",
-        "cors_enabled": True,
-        "allowed_origins": allowed_origins,
-        "endpoints": {
-            "GET /health": "Health check with database connectivity",
-            "POST /register": "User registration",
-            "POST /token": "User login and token generation",
-            "GET /users/me": "Get current user info (requires authentication)",
-            "POST /chat": "Chat with the RAG system (requires authentication)",
-            "POST /translate": "Translate text (requires authentication)",
-            "POST /translate-markdown": "Translate markdown content (requires authentication)",
-        },
-    }
+    return {"status": "ok", "service": "Physical AI RAG API"}
+
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint that also tests database connectivity"""
+async def health():
     try:
         async with await get_db_connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("SELECT 1")
-                result = await cur.fetchone()
+        return {"status": "healthy"}
+    except Exception:
+        return {"status": "unhealthy"}
 
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "cors": "enabled",
-            "message": "API is running and database is accessible"
-        }
-    except Exception as e:
-        print(f"Health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e),
-            "message": "API is running but database connection failed"
-        }
 
 @app.post("/register", response_model=Token)
 async def register(user: UserCreate):
@@ -357,11 +249,9 @@ async def register(user: UserCreate):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     db_user = await create_user(user.email, user.full_name, user.password)
-    token = create_access_token(
-        {"sub": db_user["email"]},
-        timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
+    token = create_access_token({"sub": db_user["email"]})
     return {"access_token": token, "token_type": "bearer"}
+
 
 @app.post("/token", response_model=Token)
 async def login(username: str = Form(...), password: str = Form(...)):
@@ -369,73 +259,53 @@ async def login(username: str = Form(...), password: str = Form(...)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token(
-        {"sub": user["email"]},
-        timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
+    token = create_access_token({"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
+
 
 @app.get("/users/me")
 async def users_me(current_user: dict = Depends(get_current_user)):
-    return current_user
+    return {
+        "id": current_user["id"],
+        "email": current_user["email"],
+        "full_name": current_user["full_name"],
+    }
 
-# CRITICAL FIX 5: Simplified /chat endpoint - removed redundant CORS headers
+
 @app.post("/chat")
-async def chat(chat_request: ChatRequest, current_user: dict = Depends(get_current_user)):
-    """Chat endpoint - CORS is handled by middleware"""
-    try:
-        from gemini_agents import process_user_query
+async def chat(
+    chat_request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    from gemini_agents import process_user_query
 
-        context = chat_request.selected_text
-        user = await get_user_by_email(current_user["email"])
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        user_id = user["id"]
+    result = await process_user_query(
+        current_user["id"],
+        chat_request.query,
+        chat_request.selected_text,
+    )
+    return {"response": result.get("response", result)}
 
-        result = await process_user_query(user_id, chat_request.query, context)
-        
-        # Simple return - middleware handles CORS
-        return {"response": result.get("response", result)}
-        
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=f"Chat functionality not available: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
 
 @app.post("/translate")
-async def translate_text(request: TranslateTextRequest, current_user: dict = Depends(get_current_user)):
-    """Translate text to the specified language (default: Urdu)"""
-    try:
-        if os.getenv("QWEN_API_KEY"):
-            from qwen_translation_service import qwen_translation_service
-            translation_service = qwen_translation_service
-        else:
-            from translation_service import translation_service
+async def translate(
+    request: TranslateTextRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    from translation_service import translation_service
+    translated = await translation_service.translate_text(
+        request.text, request.target_language
+    )
+    return {"translated_text": translated}
 
-        translated_text = await translation_service.translate_text(request.text, request.target_language)
-        return {
-            "original_text": request.text, 
-            "translated_text": translated_text, 
-            "target_language": request.target_language
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 @app.post("/translate-markdown")
-async def translate_markdown(request: TranslateMarkdownRequest, current_user: dict = Depends(get_current_user)):
-    """Translate markdown content while preserving structure"""
-    try:
-        if os.getenv("QWEN_API_KEY"):
-            from qwen_translation_service import qwen_translation_service
-            translation_service = qwen_translation_service
-        else:
-            from translation_service import translation_service
-
-        translated_content = await translation_service.translate_markdown_content(request.markdown_content)
-        return {
-            "original_content": request.markdown_content, 
-            "translated_content": translated_content, 
-            "target_language": request.target_language
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Markdown translation failed: {str(e)}")
+async def translate_markdown(
+    request: TranslateMarkdownRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    from translation_service import translation_service
+    translated = await translation_service.translate_markdown_content(
+        request.markdown_content
+    )
+    return {"translated_content": translated}

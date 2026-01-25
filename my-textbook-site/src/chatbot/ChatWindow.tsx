@@ -9,24 +9,27 @@ interface ChatWindowProps {
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, token } = useAuth(); // ✅ SINGLE hook call
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [selectedText, setSelectedText] = useState<string>('');
+  const [selectedText, setSelectedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll when new messages arrive
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Capture selected text from the page
+  // Capture selected text (CLIENT ONLY)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleSelection = () => {
       const selection = window.getSelection();
       const text = selection?.toString().trim();
-      if (text && text.length > 0) setSelectedText(text);
+      if (text) setSelectedText(text);
     };
 
     document.addEventListener('mouseup', handleSelection);
@@ -34,74 +37,60 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   }, []);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() && !selectedText) return;
+    if ((!inputValue.trim() && !selectedText) || !token) return;
 
     setIsLoading(true);
 
-    // Prepare user message for UI
-    const userMessage: Message = {
-      text: inputValue || 'Question about selected text',
-      sender: 'user',
-      selectedText: selectedText || undefined
-    };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [
+      ...prev,
+      {
+        text: inputValue || 'Question about selected text',
+        sender: 'user',
+        selectedText: selectedText || undefined,
+      },
+    ]);
+
     setInputValue('');
 
     try {
-      // Ensure payload matches FastAPI ChatRequest
-      const payload = {
-        query: inputValue.trim() || 'Question about selected text',
-        selected_text: selectedText || null
-      };
-
-      // Get token from localStorage
-      const { token } = useAuth();
-
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-
-      const response = await fetch('https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        'https://physical-ai-humanoid-robotics-textbook-fcve.onrender.com/chat',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            query: inputValue || 'Question about selected text',
+            selected_text: selectedText || null,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // Unauthorized - likely token expired, redirect to login
-          window.location.reload(); // This will cause the auth check to fail and show login
+        if (response.status === 401 && typeof window !== 'undefined') {
+          window.location.reload();
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      const botMessage: Message = { text: data.response, sender: 'bot' };
-      setMessages(prev => [...prev, botMessage]);
-
+      setMessages(prev => [...prev, { text: data.response, sender: 'bot' }]);
       setSelectedText('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        text: 'Sorry, something went wrong. Please make sure the backend server is running and you are logged in.',
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, errorMessage]);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        {
+          text: '⚠️ Something went wrong. Please ensure you are logged in and the server is running.',
+          sender: 'bot',
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !isLoading) handleSendMessage();
-  };
-
-  const clearSelection = () => setSelectedText('');
-
-  // If not authenticated, show auth wrapper
   if (!isAuthenticated) {
     return (
       <div className={styles.chatWindow}>
@@ -114,29 +103,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     );
   }
 
-  // If authenticated, show the chat interface
   return (
     <div className={styles.chatWindow}>
       <div className={styles.chatHeader}>
+        <h2>📚 Book Assistant</h2>
         <div>
-          <h2>📚 Book Assistant</h2>
-          <div style={{ fontSize: '0.7rem', marginTop: '-10px', color: '#ddd' }}>
-            
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={() => {
               logout();
-              window.location.reload(); // Refresh to show login screen
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-              textDecoration: 'underline'
+              if (typeof window !== 'undefined') window.location.reload();
             }}
           >
             Logout
@@ -146,68 +121,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       </div>
 
       <div className={styles.chatMessages}>
-        {messages.length === 0 && (
-          <div className={styles.emptyState}>
-            <p>Ask me anything about the book!</p>
-            <p style={{ fontSize: '0.8rem', color: '#888' }}>
-              💡 Tip: Select text from the page to ask specific questions
-            </p>
-          </div>
-        )}
-
-        {messages.map((message, index) => (
-          <div key={index} className={`${styles.message} ${styles[message.sender]}`}>
-            {message.selectedText && (
+        {messages.map((m, i) => (
+          <div key={i} className={`${styles.message} ${styles[m.sender]}`}>
+            {m.selectedText && (
               <div className={styles.selectedTextPreview}>
-                <em>Selected: "{message.selectedText.substring(0, 50)}..."</em>
+                <em>{m.selectedText.slice(0, 50)}…</em>
               </div>
             )}
-            <div>{message.text}</div>
+            {m.text}
           </div>
         ))}
-
-        {isLoading && (
-          <div className={`${styles.message} ${styles.bot}`}>
-            <div className={styles.loadingDots}>
-              <span>.</span>
-              <span>.</span>
-              <span>.</span>
-            </div>
-          </div>
-        )}
-
+        {isLoading && <div className={styles.bot}>...</div>}
         <div ref={messagesEndRef} />
       </div>
 
-      {selectedText && (
-        <div className={styles.selectedIndicator}>
-          <div className={styles.selectedTextContent}>
-            <strong>Selected:</strong> "{selectedText.substring(0, 60)}..."
-          </div>
-          <button
-            onClick={clearSelection}
-            className={styles.clearButton}
-            aria-label="Clear selection"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <div className={styles.chatInput}>
         <input
-          type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={selectedText ? "Ask about selected text..." : "Ask a question..."}
-          disabled={isLoading}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+          placeholder="Ask a question…"
         />
-        <button
-          onClick={handleSendMessage}
-          disabled={isLoading || (!inputValue.trim() && !selectedText)}
-        >
-          {isLoading ? '...' : 'Send'}
+        <button onClick={handleSendMessage} disabled={isLoading}>
+          Send
         </button>
       </div>
     </div>
