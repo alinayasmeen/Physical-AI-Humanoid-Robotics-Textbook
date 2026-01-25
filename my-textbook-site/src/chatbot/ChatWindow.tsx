@@ -55,7 +55,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       };
 
       // Get token from localStorage
-      const token = localStorage.getItem('token');
+      const { token } = useAuth();
+
       if (!token) {
         throw new Error("No auth token found");
       }

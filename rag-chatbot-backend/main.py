@@ -85,14 +85,11 @@ if additional_origins:
 # BEFORE any routes or other code
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for testing
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],
-    max_age=3600,  # Cache preflight for 1 hour
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 # CRITICAL FIX 4: Add explicit OPTIONS handler for preflight requests
 @app.options("/{path:path}")
 async def options_handler():
