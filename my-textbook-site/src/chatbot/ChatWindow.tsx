@@ -108,7 +108,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       <div className={styles.chatHeader}>
         <h2>📚 Book Assistant</h2>
         <div>
-          <button
+          <button 
+            className="font-md"
             onClick={() => {
               logout();
               if (typeof window !== 'undefined') window.location.reload();
