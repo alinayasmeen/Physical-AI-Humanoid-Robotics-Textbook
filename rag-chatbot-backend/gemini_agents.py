@@ -146,7 +146,7 @@ async def create_gemini_chat_completion(user_id: str, query: str, context: Optio
             model="models/gemini-2.5-flash",
             messages=messages,
             temperature=0.7,
-            max_tokens=1000
+
         )
 
         # Extract the response text
